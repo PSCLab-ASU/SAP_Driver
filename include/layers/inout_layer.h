@@ -53,6 +53,9 @@ class InOutLayer : public base_layer<InOutLayer<InOutType>, InOutPacket >
       std::cout << "0)Registrating InOutLayer functions" << std::endl;
       this->template register_cmd<FromApp>(noop, &class_type::_noop);
       this->template register_cmd<FromPhy>(noop, &class_type::_noop);
+      this->template register_cmd<FromApp>(cleanup, &class_type::_cleanup_ds);
+      this->template register_cmd<FromPhy>(cleanup, &class_type::_cleanup_us);
+      /////////////////////////////////////////////////////////////////////////////////////
       this->template register_cmd<FromApp>(self, &class_type::_input_mux );
       this->template register_cmd<FromPhy>(InOutPacket::output, &class_type::_output_demux);
     }
@@ -138,6 +141,17 @@ class InOutLayer : public base_layer<InOutLayer<InOutType>, InOutPacket >
       return 0;
     }
 
+    int _cleanup_ds(InOutPacket&& in, InOutPktVec& out )
+    {
+      std::cout << "cleanup_ds output_mux... " << std::endl;
+      return 0;
+    }
+
+    int _cleanup_us(InOutPacket&& in, InOutPktVec& out )
+    {
+      std::cout << "cleanup_us output_mux... " << std::endl;
+      return 0;
+    }
 
     std::mutex _in_mu, _out_mu;
 

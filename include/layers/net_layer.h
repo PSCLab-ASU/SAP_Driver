@@ -59,9 +59,9 @@ class NetworkLayer : public base_layer<NetworkLayer<InputType>, NetworkPacket >
 
     int _self_us(NetworkPacket&& in, NetworkPktVec& out );
 
-    int _func0(NetworkPacket&& in, NetworkPktVec& out );
+    int _cleanup_ds(NetworkPacket&& in, NetworkPktVec& out );
 
-    int _func1(NetworkPacket&& in, NetworkPktVec& out );
+    int _cleanup_us(NetworkPacket&& in, NetworkPktVec& out );
 
     static NetSM _sm;
 };

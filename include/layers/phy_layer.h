@@ -59,9 +59,9 @@ class PhyLayer : public base_layer<PhyLayer<InputType>, PhyPacket >
 
     int _self_us(PhyPacket&& in, PhyPktVec& out );
 
-    int _func0(PhyPacket&& in, PhyPktVec& out );
+    int _cleanup_ds(PhyPacket&& in, PhyPktVec& out );
 
-    int _func1(PhyPacket&& in, PhyPktVec& out );
+    int _cleanup_us(PhyPacket&& in, PhyPktVec& out );
 
     static PhySM _sm;
 };

@@ -59,9 +59,9 @@ class TransportLayer : public base_layer<TransportLayer<InputType>, TransportPac
 
     int _self_us(TransportPacket&& in, TransportPktVec& out );
 
-    int _func0(TransportPacket&& in, TransportPktVec& out );
+    int _cleanup_ds(TransportPacket&& in, TransportPktVec& out );
 
-    int _func1(TransportPacket&& in, TransportPktVec& out );
+    int _cleanup_us(TransportPacket&& in, TransportPktVec& out );
 
     static TransSM _sm;
 };

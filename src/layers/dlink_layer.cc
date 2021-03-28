@@ -19,14 +19,11 @@ DatalinkLayer<InputType>::DatalinkLayer()
   std::cout << "0)Registrating DatalinkLayer functions" << std::endl;
   this->template register_cmd<FromApp>(noop, &class_type::_noop);
   this->template register_cmd<FromPhy>(noop, &class_type::_noop);
-  std::cout << "1)Registrating DatalinkLayer functions" << std::endl;
   this->template register_cmd<FromApp>(self, &class_type::_self_ds);
   this->template register_cmd<FromPhy>(self, &class_type::_self_us);
-  std::cout << "2)Registrating DatalinkLayer functions" << std::endl;
-  this->template register_cmd<FromApp>(command1, &class_type::_func0);
-  std::cout << "3)Registrating DatalinkLayer functions" << std::endl;
-  this->template register_cmd<FromPhy>(command2, &class_type::_func1);
-  std::cout << "4)Registrating DatalinkLayer functions" << std::endl;
+  this->template register_cmd<FromApp>(cleanup, &class_type::_cleanup_ds);
+  this->template register_cmd<FromPhy>(cleanup, &class_type::_cleanup_us);
+  ////////////////////////////////////////////////////////////////////////////
 
 }
 
@@ -53,7 +50,7 @@ int DatalinkLayer<InputType>::_self_us(DatalinkPacket&& in, DatalinkPktVec& out 
 }
 
 template<typename InputType>
-int DatalinkLayer<InputType>::_func0(DatalinkPacket&& in, DatalinkPktVec& out )
+int DatalinkLayer<InputType>::_cleanup_ds(DatalinkPacket&& in, DatalinkPktVec& out )
 {
 
   std::cout << "Calling Datalink func3..." << std::endl;
@@ -61,7 +58,7 @@ int DatalinkLayer<InputType>::_func0(DatalinkPacket&& in, DatalinkPktVec& out )
 }
 
 template<typename InputType>
-int DatalinkLayer<InputType>::_func1(DatalinkPacket&& in, DatalinkPktVec& out )
+int DatalinkLayer<InputType>::_cleanup_us(DatalinkPacket&& in, DatalinkPktVec& out )
 {
 
   std::cout << "Calling Datalink func4..." << std::endl;

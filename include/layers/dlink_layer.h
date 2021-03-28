@@ -59,9 +59,9 @@ class DatalinkLayer : public base_layer<DatalinkLayer<InputType>, DatalinkPacket
 
     int _self_us(DatalinkPacket&& in, DatalinkPktVec& out );
 
-    int _func0(DatalinkPacket&& in, DatalinkPktVec& out );
+    int _cleanup_ds(DatalinkPacket&& in, DatalinkPktVec& out );
 
-    int _func1(DatalinkPacket&& in, DatalinkPktVec& out );
+    int _cleanup_us(DatalinkPacket&& in, DatalinkPktVec& out );
 
     static DLinkSM _sm;
 };

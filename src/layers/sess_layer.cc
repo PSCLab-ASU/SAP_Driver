@@ -19,14 +19,10 @@ SessionLayer<InputType>::SessionLayer()
   std::cout << "0)Registrating SessionLayer functions" << std::endl;
   this->template register_cmd<FromApp>(noop, &class_type::_noop);
   this->template register_cmd<FromPhy>(noop, &class_type::_noop);
-  std::cout << "1)Registrating SessionLayer functions" << std::endl;
   this->template register_cmd<FromApp>(self, &class_type::_self_ds);
   this->template register_cmd<FromPhy>(self, &class_type::_self_us);
-  std::cout << "2)Registrating SessionLayer functions" << std::endl;
-  this->template register_cmd<FromApp>(command1, &class_type::_func0);
-  std::cout << "3)Registrating SessionLayer functions" << std::endl;
-  this->template register_cmd<FromPhy>(command2, &class_type::_func1);
-  std::cout << "4)Registrating SessionLayer functions" << std::endl;
+  this->template register_cmd<FromApp>(cleanup, &class_type::_cleanup_ds);
+  this->template register_cmd<FromPhy>(cleanup, &class_type::_cleanup_us);
 
 }
 
@@ -53,7 +49,7 @@ int SessionLayer<InputType>::_self_us(SessionPacket&& in, SessionPktVec& out )
 }
 
 template<typename InputType>
-int SessionLayer<InputType>::_func0(SessionPacket&& in, SessionPktVec& out )
+int SessionLayer<InputType>::_cleanup_ds(SessionPacket&& in, SessionPktVec& out )
 {
 
   std::cout << "Calling Session func3..." << std::endl;
@@ -61,7 +57,7 @@ int SessionLayer<InputType>::_func0(SessionPacket&& in, SessionPktVec& out )
 }
 
 template<typename InputType>
-int SessionLayer<InputType>::_func1(SessionPacket&& in, SessionPktVec& out )
+int SessionLayer<InputType>::_cleanup_us(SessionPacket&& in, SessionPktVec& out )
 {
 
   std::cout << "Calling Session func4..." << std::endl;

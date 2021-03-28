@@ -59,9 +59,9 @@ class SessionLayer : public base_layer<SessionLayer<InputType>, SessionPacket >
 
     int _self_us(SessionPacket&& in, SessionPktVec& out );
 
-    int _func0(SessionPacket&& in, SessionPktVec& out );
+    int _cleanup_ds(SessionPacket&& in, SessionPktVec& out );
 
-    int _func1(SessionPacket&& in, SessionPktVec& out );
+    int _cleanup_us(SessionPacket&& in, SessionPktVec& out );
 
     static SessSM _sm;
 };

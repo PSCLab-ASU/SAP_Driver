@@ -19,14 +19,10 @@ PhyLayer<InputType>::PhyLayer()
   std::cout << "0)Registrating PhyLayer functions" << std::endl;
   this->template register_cmd<FromApp>(noop, &class_type::_noop);
   this->template register_cmd<FromPhy>(noop, &class_type::_noop);
-  std::cout << "1)Registrating PhyLayer functions" << std::endl;
   this->template register_cmd<FromApp>(self, &class_type::_self_ds);
   this->template register_cmd<FromPhy>(self, &class_type::_self_us);
-  std::cout << "2)Registrating PhyLayer functions" << std::endl;
-  this->template register_cmd<FromApp>(command1, &class_type::_func0);
-  std::cout << "3)Registrating PhyLayer functions" << std::endl;
-  this->template register_cmd<FromPhy>(command2, &class_type::_func1);
-  std::cout << "4)Registrating PhyLayer functions" << std::endl;
+  this->template register_cmd<FromApp>(cleanup, &class_type::_cleanup_ds);
+  this->template register_cmd<FromPhy>(cleanup, &class_type::_cleanup_us);
 
 }
 
@@ -53,7 +49,7 @@ int PhyLayer<InputType>::_self_us(PhyPacket&& in, PhyPktVec& out )
 }
 
 template<typename InputType>
-int PhyLayer<InputType>::_func0(PhyPacket&& in, PhyPktVec& out )
+int PhyLayer<InputType>::_cleanup_ds(PhyPacket&& in, PhyPktVec& out )
 {
 
   std::cout << "Calling Phy func3..." << std::endl;
@@ -61,7 +57,7 @@ int PhyLayer<InputType>::_func0(PhyPacket&& in, PhyPktVec& out )
 }
 
 template<typename InputType>
-int PhyLayer<InputType>::_func1(PhyPacket&& in, PhyPktVec& out )
+int PhyLayer<InputType>::_cleanup_us(PhyPacket&& in, PhyPktVec& out )
 {
 
   std::cout << "Calling Phy func4..." << std::endl;
