@@ -5,89 +5,65 @@
 #include "include/pipeline_data.h"
 
 #pragma once
+struct SessSM
+{
+
+};
+
+
 struct SessionPacket : public BasePacket
 {
   using BasePacket::get_base;
-  //restriction interface view
-  SessionPacket( typename BasePacket::type base )
-  : BasePacket( base )
-  {}
+   //restriction interface view
+  SessionPacket( typename BasePacket::type base );
 
+  enum : unsigned char { var=common_layer_cmds::END+1 };
 };
 
 template< typename InputType=NullType>
 class SessionLayer : public base_layer<SessionLayer<InputType>, SessionPacket >
 {
-  public :
-    using InputType_t   = InputType;
+  public: 
+
+    using InputType_t = InputType;
     using SessionPktVec = std::vector<SessionPacket>;
 
-    SessionLayer()
-    {
-      using namespace common_layer_cmds;
-      using class_type = SessionLayer<InputType>;
-
-      const auto FromApp = Pipelineflow::FromApp;
-      const auto FromPhy = Pipelineflow::FromPhy; 
-
-      std::cout << "0)Registrating SessionLayer functions" << std::endl;
-      this->template register_cmd<FromApp>(self, &class_type::func0);
-      std::cout << "1)Registrating SessionLayer functions" << std::endl;
-      this->template register_cmd<FromApp>(command1, &class_type::func1);
-      std::cout << "2)Registrating SessionLayer functions" << std::endl;
-      this->template register_cmd<FromApp>(command2, &class_type::func2);
-      std::cout << "3)Registrating SessionLayer functions" << std::endl;
-      this->template register_cmd<FromPhy>(command3, &class_type::func3);
-      std::cout << "4)Registrating SessionLayer functions" << std::endl;
-      this->template register_cmd<FromPhy>(command4, &class_type::func4);
-      std::cout << "5)Registrating SessionLayer functions" << std::endl;
-    }
+    SessionLayer();
 
     template<std::ranges::input_range R>
-    SessionLayer(R& r)
+    SessionLayer( R& r ) 
     : SessionLayer()
     {
       std::cout << "SessionLayer ctor " << std::endl;
     }
 
     template<std::ranges::input_range R>
-    SessionLayer(R& r, InputType& in)
+    SessionLayer( R& r, InputType& in ) 
     : SessionLayer()
     {
       std::cout << "SessionLayer ctor(in) " << std::endl;
     }
 
-    int func0(SessionPacket&& in, SessionPktVec& out )
+    template<std::ranges::input_range R>
+    SessionLayer( R& r, NullType in ) 
+    : SessionLayer()
     {
-      std::cout << "Calling Session func0..." << std::endl;
-      return 0;
+      std::cout << "Session Layer (NullType) " << std::endl;
     }
 
-    int func1(SessionPacket&& in, SessionPktVec& out )
-    {
-      std::cout << "Calling Session func1..." << std::endl;
-      return 0;
-    }
+  private:
 
-    int func2(SessionPacket&& in, SessionPktVec& out )
-    {
+    int _noop(SessionPacket&& in, SessionPktVec& out );
+      
+    int _self_ds(SessionPacket&& in, SessionPktVec& out );
 
-      std::cout << "Calling Session func2..." << std::endl;
-      return 0;
-    }
+    int _self_us(SessionPacket&& in, SessionPktVec& out );
 
-    int func3(SessionPacket&& in, SessionPktVec& out )
-    {
+    int _func0(SessionPacket&& in, SessionPktVec& out );
 
-      std::cout << "Calling Session func3..." << std::endl;
-      return 0;
-    }
+    int _func1(SessionPacket&& in, SessionPktVec& out );
 
-    int func4(SessionPacket&& in, SessionPktVec& out )
-    {
-
-      std::cout << "Calling Session func4..." << std::endl;
-      return 0;
-    }
+    static SessSM _sm;
 };
 
+template class SessionLayer<NullType>;

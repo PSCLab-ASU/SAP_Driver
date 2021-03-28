@@ -24,7 +24,7 @@ constexpr auto heart_beat();
 constexpr auto rest();
 
 namespace common_layer_cmds { 
-  enum : unsigned char {self=0, command1, command2, command3, command4 }; 
+  enum : unsigned char {noop=0, self, command1, command2, command3, command4, END }; 
 }
 
 using uchar = unsigned char;

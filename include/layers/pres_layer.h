@@ -5,14 +5,19 @@
 #include "include/pipeline_data.h"
 
 #pragma once
+struct PresSM
+{
+
+};
+
+
 struct PresentationPacket : public BasePacket
 {
   using BasePacket::get_base;
    //restriction interface view
-  PresentationPacket( typename BasePacket::type base )
-  : BasePacket( base )
-  {}
+  PresentationPacket( typename BasePacket::type base );
 
+  enum : unsigned char { var=common_layer_cmds::END+1 };
 };
 
 template< typename InputType=NullType>
@@ -23,27 +28,7 @@ class PresentationLayer : public base_layer<PresentationLayer<InputType>, Presen
     using InputType_t = InputType;
     using PresentationPktVec = std::vector<PresentationPacket>;
 
-    PresentationLayer()
-    {
-      using namespace common_layer_cmds;
-      using class_type = PresentationLayer<InputType>;
-
-      const auto FromApp = Pipelineflow::FromApp;
-      const auto FromPhy = Pipelineflow::FromPhy; 
-
-      std::cout << "0)Registrating PresentationLayer functions" << std::endl;
-      this->template register_cmd<FromApp>(self, &class_type::func0);
-      std::cout << "1)Registrating PrensetationLayer functions" << std::endl;
-      this->template register_cmd<FromApp>(command1, &class_type::func1);
-      std::cout << "2)Registrating PrensetationLayer functions" << std::endl;
-      this->template register_cmd<FromApp>(command2, &class_type::func2);
-      std::cout << "3)Registrating PrensetationLayer functions" << std::endl;
-      this->template register_cmd<FromPhy>(command3, &class_type::func3);
-      std::cout << "4)Registrating PrensetationLayer functions" << std::endl;
-      this->template register_cmd<FromPhy>(command4, &class_type::func4);
-      std::cout << "5)Registrating PrensetationLayer functions" << std::endl;
-
-    }
+    PresentationLayer();
 
     template<std::ranges::input_range R>
     PresentationLayer( R& r ) 
@@ -66,37 +51,19 @@ class PresentationLayer : public base_layer<PresentationLayer<InputType>, Presen
       std::cout << "Presentation Layer (NullType) " << std::endl;
     }
 
-    int func0(PresentationPacket&& in, PresentationPktVec& out )
-    {
-      std::cout << "Calling Presentation func0..." << std::endl;
-      return 0;
-    }
+  private:
+
+    int _noop(PresentationPacket&& in, PresentationPktVec& out );
       
-    int func1(PresentationPacket&& in, PresentationPktVec& out )
-    {
-      std::cout << "Calling Presentation func1..." << std::endl;
-      return 0;
-    }
+    int _self_ds(PresentationPacket&& in, PresentationPktVec& out );
 
-    int func2(PresentationPacket&& in, PresentationPktVec& out )
-    {
+    int _self_us(PresentationPacket&& in, PresentationPktVec& out );
 
-      std::cout << "Calling Presentation func2..." << std::endl;
-      return 0;
-    }
+    int _func0(PresentationPacket&& in, PresentationPktVec& out );
 
-    int func3(PresentationPacket&& in, PresentationPktVec& out )
-    {
+    int _func1(PresentationPacket&& in, PresentationPktVec& out );
 
-      std::cout << "Calling Presentation func3..." << std::endl;
-      return 0;
-    }
-
-    int func4(PresentationPacket&& in, PresentationPktVec& out )
-    {
-
-      std::cout << "Calling Presentation func4..." << std::endl;
-      return 0;
-    }
+    static PresSM _sm;
 };
 
+template class PresentationLayer<NullType>;

@@ -1,93 +1,69 @@
-#include <ranges>
 #include <iostream>
+#include <ranges>
 #include "include/utils.h"
 #include "include/layers/base_layer.h"
 #include "include/pipeline_data.h"
 
 #pragma once
+struct DLinkSM
+{
+
+};
+
+
 struct DatalinkPacket : public BasePacket
 {
   using BasePacket::get_base;
    //restriction interface view
-  DatalinkPacket( typename BasePacket::type base )
-  : BasePacket( base )
-  {}
+  DatalinkPacket( typename BasePacket::type base );
 
+  enum : unsigned char { var=common_layer_cmds::END+1 };
 };
 
 template< typename InputType=NullType>
 class DatalinkLayer : public base_layer<DatalinkLayer<InputType>, DatalinkPacket >
 {
-  public :
-    using InputType_t    = InputType;
+  public: 
+
+    using InputType_t = InputType;
     using DatalinkPktVec = std::vector<DatalinkPacket>;
 
-    DatalinkLayer()
+    DatalinkLayer();
+
+    template<std::ranges::input_range R>
+    DatalinkLayer( R& r ) 
+    : DatalinkLayer()
     {
-      using namespace common_layer_cmds;
-      using class_type = DatalinkLayer<InputType>;
-
-      const auto FromApp = Pipelineflow::FromApp;
-      const auto FromPhy = Pipelineflow::FromPhy; 
-
-      std::cout << "0)Registrating DatalinkLayer functions" << std::endl;
-      this->template register_cmd<FromApp>(self, &class_type::func0);
-      std::cout << "1)Registrating DatalinkLayer functions" << std::endl;
-      this->template register_cmd<FromApp>(command1, &class_type::func1);
-      std::cout << "2)Registrating DatalinkLayer functions" << std::endl;
-      this->template register_cmd<FromApp>(command2, &class_type::func2);
-      std::cout << "3)Registrating DatalinkLayer functions" << std::endl;
-      this->template register_cmd<FromPhy>(command3, &class_type::func3);
-      std::cout << "4)Registrating DatalinkLayer functions" << std::endl;
-      this->template register_cmd<FromPhy>(command4, &class_type::func4);
-      std::cout << "5)Registrating DatalinkLayer functions" << std::endl;
+      std::cout << "DatalinkLayer ctor " << std::endl;
     }
 
     template<std::ranges::input_range R>
-    DatalinkLayer(R& r) 
+    DatalinkLayer( R& r, InputType& in ) 
     : DatalinkLayer()
     {
-      std::cout << "DataLinkLayer ctor()" << std::endl;
+      std::cout << "DatalinkLayer ctor(in) " << std::endl;
     }
 
     template<std::ranges::input_range R>
-    DatalinkLayer(R& r, InputType& in) 
+    DatalinkLayer( R& r, NullType in ) 
     : DatalinkLayer()
     {
-      std::cout << "DataLinkLayer ctor(in)" << std::endl;
+      std::cout << "Datalink Layer (NullType) " << std::endl;
     }
 
-    int func0(DatalinkPacket&& in, DatalinkPktVec& out )
-    {
-      std::cout << "Calling Datalink func0..." << std::endl;
-      return 0;
-    }
-  
-    int func1(DatalinkPacket&& in, DatalinkPktVec& out )
-    {
-      std::cout << "Calling Datalink func1..." << std::endl;
-      return 0;
-    }
+  private:
 
-    int func2(DatalinkPacket&& in, DatalinkPktVec& out )
-    {
+    int _noop(DatalinkPacket&& in, DatalinkPktVec& out );
+      
+    int _self_ds(DatalinkPacket&& in, DatalinkPktVec& out );
 
-      std::cout << "Calling Datalink func2..." << std::endl;
-      return 0;
-    }
+    int _self_us(DatalinkPacket&& in, DatalinkPktVec& out );
 
-    int func3(DatalinkPacket&& in, DatalinkPktVec& out )
-    {
+    int _func0(DatalinkPacket&& in, DatalinkPktVec& out );
 
-      std::cout << "Calling Datalink func3..." << std::endl;
-      return 0;
-    }
+    int _func1(DatalinkPacket&& in, DatalinkPktVec& out );
 
-    int func4(DatalinkPacket&& in, DatalinkPktVec& out )
-    {
-
-      std::cout << "Calling Datalink func4..." << std::endl;
-      return 0;
-    }
+    static DLinkSM _sm;
 };
 
+template class DatalinkLayer<NullType>;

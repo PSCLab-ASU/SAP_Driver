@@ -29,7 +29,8 @@ struct InOutPacket : public BasePacket
   InOutPacket( typename BasePacket::type base )
   : BasePacket( base )
   {}
-
+ 
+  enum : unsigned char { output=common_layer_cmds::END+1 };
 };
 
 /* main layer defintion */
@@ -47,10 +48,13 @@ class InOutLayer : public base_layer<InOutLayer<InOutType>, InOutPacket >
 
       const auto FromApp = Pipelineflow::FromApp;
       const auto FromPhy = Pipelineflow::FromPhy;
+      
   
       std::cout << "0)Registrating InOutLayer functions" << std::endl;
-      this->template register_cmd<FromApp>(self, &class_type::input_mux);
-      this->template register_cmd<FromPhy>(self, &class_type::output_demux);
+      this->template register_cmd<FromApp>(noop, &class_type::_noop);
+      this->template register_cmd<FromPhy>(noop, &class_type::_noop);
+      this->template register_cmd<FromApp>(self, &class_type::_input_mux );
+      this->template register_cmd<FromPhy>(InOutPacket::output, &class_type::_output_demux);
     }
 
     template<std::ranges::input_range R>
@@ -101,13 +105,20 @@ class InOutLayer : public base_layer<InOutLayer<InOutType>, InOutPacket >
     }
 
   private:
- 
-    int input_mux(InOutPacket&& in, InOutPktVec& out )
+     
+    int _noop( InOutPacket&& in, InOutPktVec& out ) 
     {
+      return 0;
+    }
+ 
+    int _input_mux(InOutPacket&& in, InOutPktVec& out )
+    {
+      std::cout << "self input_mux... " << std::endl;
       std::lock_guard lk( _in_mu );
       if( _input_q.empty() ) out.push_back( in );
       else
       {
+        std::cout << "Pushing data into Q" << std::endl;
         while( !_input_q.empty() ){
           out.push_back( _input_q.front().get_data() );
           _input_q.pop();
@@ -116,8 +127,9 @@ class InOutLayer : public base_layer<InOutLayer<InOutType>, InOutPacket >
       return 0;
     }
 
-    int output_demux(InOutPacket&& in, InOutPktVec& out )
+    int _output_demux(InOutPacket&& in, InOutPktVec& out )
     {
+      std::cout << "self output_mux... " << std::endl;
       std::lock_guard lk( _out_mu );
       _output_q.push( in.get_base() );
 
