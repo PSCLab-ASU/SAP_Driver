@@ -9,9 +9,6 @@
 
 enum Pipelineflow { FromApp=0, FromPhy };
 
-
-
-
 struct base_pipeline_data
 {
 
@@ -29,6 +26,21 @@ struct base_pipeline_data
   uchar get_op(){
     std::cout << "get_op()" << std::endl;
     return _data[0];
+  }
+
+  auto get_ctrl()
+  {
+    return _ctrl;
+  }
+
+  void set_ctrl( const std::vector<unsigned char>& ctrl )
+  {
+    _ctrl = ctrl;
+  }
+ 
+  void pack_header( const std::vector<uchar>& hdr )
+  {
+    //TBD
   }
 
   // 0 = downstream, 1 = upstream
@@ -56,6 +68,23 @@ struct BasePacket
   { 
     return _base;
   }
+
+  auto get_ctrl()
+  {
+    return _base->get_ctrl();
+  }
+ 
+  template<typename Ctrl>
+  void update_ctrl( Ctrl&& ctl )
+  {
+    _base->set_ctrl( ctl.get() );
+  }
+
+  template<typename T>
+  void pack_header( std::vector<T> header )
+  {
+    //_base->pack_header( hdr );
+  }  
 
   private:
 
