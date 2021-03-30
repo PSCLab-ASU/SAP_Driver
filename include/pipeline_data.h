@@ -7,25 +7,35 @@
 
 #pragma once
 
+#define CTRL_SZ 1
+#define DATA_SZ 0 
+
 enum Pipelineflow { FromApp=0, FromPhy };
 
 struct base_pipeline_data
 {
 
+  base_pipeline_data(size_t ctrl_size=CTRL_SZ, size_t data_size=DATA_SZ)
+  : _ctrl(ctrl_size, 0), _data(data_size, 0), dst(false)
+  {
+    std::cout << "base_pipeline_data(....) " << std::endl; 
+  }
+
   const bool& get_dst()
-  {  
+  {
+    std::cout << "DST : " << dst << std::endl;  
     return dst;
   }
 
   void set_op(uchar op)
   {
-    std::cout << "set_op()" << std::endl;
-    _data[0] = op;
+    std::cout << "set_op() : " << std::to_string(op) << " : " << _ctrl.size() <<  std::endl;
+    _ctrl[0] = op;
   }
 
   uchar get_op(){
     std::cout << "get_op()" << std::endl;
-    return _data[0];
+    return _ctrl[0];
   }
 
   auto get_ctrl()
@@ -44,7 +54,7 @@ struct base_pipeline_data
   }
 
   // 0 = downstream, 1 = upstream
-  bool dst;
+  bool dst = false;
   //this vector manages the control signals
   //and is reset every current layer  
   std::vector<unsigned char> _ctrl;
@@ -95,12 +105,15 @@ template<Pipelineflow plf>
 struct pipeline_data 
 {
 
-  constexpr static size_t HEADER_SZ = 16;
-
-  pipeline_data( )
+  pipeline_data(bool alloc = false )
   : _heartbeat(0)
   {
     std::cout << "pipeline_data ctor()" << std::endl;
+    if( alloc )
+    {
+      std::cout << "Allocating base packet ..." << std::endl;
+      _data = std::make_shared<base_pipeline_data>();
+    }
   }
 
   pipeline_data( int hb )

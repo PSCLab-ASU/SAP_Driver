@@ -83,21 +83,29 @@ class layer_cmd_processor
       {
         std::cout << " Forwarding input ..." << std::endl;
         output.push_back( std::move(input) ); 
-      }
-      else if( std::ranges::all_of( processed_data, 
-                                    std::negate{}, 
-                                    &typed_data::value_type::get_dst )  ) 
-      {
-        output.push_back( std::move(processed_data) );
+        std::cout << " Forwarding input : " << output.size() <<  std::endl;
       }
       else if( std::ranges::none_of( processed_data, 
                                     std::negate{}, 
                                     &typed_data::value_type::get_dst )  ) 
       {
+        std::cout << "All goes downstream..." << std::endl;
+        output.push_back( std::move(processed_data) );
+      }
+      else if( std::ranges::all_of( processed_data, 
+                                    std::negate{}, 
+                                    &typed_data::value_type::get_dst )  ) 
+      {
+        std::cout << "All goes queue..." << std::endl;
         _write_data_to_q( std::move(processed_data) );
+
+        //adding empty downstream packet to continue heart beat
+        output.push_back( typed_data{} );
+        
       }
       else
       {
+        std::cout << "All goes to mixed channels" << std::endl;
         //means thier are a mixture of things going to the queue and then the output
         auto it = std::ranges::partition( processed_data, std::negate{},
                                           &typed_data::value_type::get_dst );
@@ -124,7 +132,7 @@ class layer_cmd_processor
       if( in || Override )
       {
         //get the operation
-        auto op = in.get_pkt_operation();
+        auto op = Override?common_layer_cmds::self:in.get_pkt_operation();
 
         if( auto cmd = _command_processor.find(op); cmd != _command_processor.end() )
         {
@@ -134,6 +142,12 @@ class layer_cmd_processor
           cmd->second( in.get_data(), temp );
           //transform to out type
           std::ranges::transform(temp, std::back_inserter(out), &DataIntf::get_base );
+        }
+
+        if( op == common_layer_cmds::cleanup )
+        {
+          std::cout << "Forwarding cleanup packet" << std::endl;
+          out.push_back( in.get_data() );        
         }
       }
        

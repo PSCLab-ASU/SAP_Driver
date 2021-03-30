@@ -22,9 +22,9 @@ SAPLibPImpl::SAPLibPImpl()
   //starting forward flowa
   _forward_flow = std::jthread(std::ref(*this), from_app);
   //starting backwards flow 
-  _backward_flow = std::jthread(std::ref(*this), from_phy);
+  //_backward_flow = std::jthread(std::ref(*this), from_phy);
   
-  std::cout << "SAPLibPImpl ctor end " << std::endl;
+  std::cout << "Complete one iteration" << std::endl;
 
 }
 
@@ -36,7 +36,15 @@ void SAPLibPImpl::operator()( std::stop_token stop_token, std::integral_constant
 
   auto pipe = _pipeline.get_pipeline<plf>( );
 
-  for (auto stat : pipe ) if( stop_token.stop_requested() ) break;
+  std::cout << "Started Pipelines" << std::endl;
+
+  for (auto stat : pipe )
+    if( stop_token.stop_requested() ){
+       std::cout << "************Breaking out of thread ...*********************" << std::endl;
+       break;
+    }
+
+  std::cout << "Ending Thread : " << ((ushort)plf) << std::endl;
   
 }
 
@@ -50,7 +58,14 @@ void SAPLibPImpl::init()
 void SAPLibPImpl::finalize()
 {
 
+  std::cout << "--------------------------Finalizing-----------------------------" << std::endl;
+  auto input = PipelineInput(true);
 
+  input.set_pkt_operation( common_layer_cmds::cleanup );
+
+  _pipeline.push( std::move(input) );
+  std::cout << "-----------------------------------------------------------------" << std::endl;
+ 
 }
 
 

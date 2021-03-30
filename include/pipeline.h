@@ -25,7 +25,6 @@ struct pipeline_impl
   pipeline_impl()
   {
     std::cout << "pipeline_impl ..." << std::endl;
-
   }
   
 
@@ -34,7 +33,7 @@ struct pipeline_impl
   {
     constexpr size_t N = sizeof...(Is);
 
-    auto sleepy_hb = std::ranges::views::iota(1,10) | 
+    auto sleepy_hb = std::ranges::views::iota(1) | 
                      std::ranges::views::transform([](int in)
                      {
                        std::this_thread::sleep_for( 1000ms );
@@ -68,8 +67,10 @@ struct pipeline_impl
 
   void push( InputType&& in )
   {
+    std::cout << "Pushing data into queue" << std::endl;
     auto _push = std::get<1>(_inout_intf);
     _push( std::forward<InputType>(in) );
+    std::cout << "Pushed data into queue" << std::endl;
   }
 
   OutputType pop()

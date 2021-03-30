@@ -94,6 +94,10 @@ class PresentationLayer : public base_layer<PresentationLayer<InputType>, Presen
 
     int _cleanup_us(PresentationPacket&& in, PresentationPktVec& out );
 
+    int _func0(PresentationPacket&& in, PresentationPktVec& out );
+
+    int _func1(PresentationPacket&& in, PresentationPktVec& out );
+
     static PresSM _sm;
 };
 

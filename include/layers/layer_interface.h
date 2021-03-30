@@ -38,9 +38,8 @@ class layer_view_interface : public rg::view_interface<layer_view_interface<Laye
         layer_view_interface(R base, InOut inout)
             : _base(base),
             _inout( inout ),
-            _layer_ptr( std::make_shared<Layer>(_base, _inout ) )
+            _layer_ptr( std::make_shared<Layer>(_base, inout ) )
         {
-
         }
         
         constexpr R base() const &
@@ -93,12 +92,17 @@ struct custom_layer_range_adaptor_closure
     {
       std::cout << "operator closure (...) " << std::endl;
       if constexpr( std::is_same_v<In, NullType> )
+      {
         return layer_view_interface<Layer, In, R>(std::forward<R>(r) );
+      }
       else
+      {
         return layer_view_interface<Layer, In, R>(std::forward<R>(r), _in );
+      }
     }
 
-   std::conditional_t<std::is_same_v<In, NullType>, NullType, In> _in;
+   //std::conditional_t<std::is_same_v<In, NullType>, NullType, In> _in;
+   In _in;
 } ;
  
 template<typename Layer> 

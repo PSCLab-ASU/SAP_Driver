@@ -101,21 +101,23 @@ class InOutLayer : public base_layer<InOutLayer<InOutType>, InOutPacket >
     InOutLayer(R& r, T in ) 
     : InOutLayer( ) 
     {
-      std::cout << "InOut ctor(T)..." << std::endl;
-      auto plf   = std::get<0>( *in );
-      auto push  = std::get<1>( *in );
-      auto pop   = std::get<2>( *in );
+      auto  plf   = std::get<0>( *in );
+      auto& push  = std::get<1>( *in );
+      auto& pop   = std::get<2>( *in );
 
       if( plf == Pipelineflow::FromApp )
       {
+        std::cout << "Adding push interface into pipeline " << std::endl;
         push = [&](PipelineInput&& inp )
                 {
                   std::lock_guard lk(_in_mu);
+                  std::cout << "Ingressing data from application" << std::endl;
                   _input_q.push( inp );
                 };
       }
       else
       {
+        std::cout << "Adding pop interface out of pipeline " << std::endl;
         pop = [&]()->std::optional<PipelineOutput>
               {
                 std::lock_guard lk(_out_mu);
@@ -148,12 +150,27 @@ class InOutLayer : public base_layer<InOutLayer<InOutType>, InOutPacket >
     {
       std::cout << "self input_mux... " << std::endl;
       std::lock_guard lk( _in_mu );
-      if( _input_q.empty() ) out.push_back( in );
+      std::cout << " after lock... " << std::endl;
+      if( _input_q.empty() ) {
+        std::cout << "forwarding empty() packet " << std::endl;
+        //out.push_back( in );
+      }
       else
       {
         std::cout << "Pushing data into Q" << std::endl;
-        while( !_input_q.empty() ){
-          out.push_back( _input_q.front().get_data() );
+        while( !_input_q.empty() )
+        {
+          std::cout << "Ingressing packet " << std::endl;
+          auto& data = _input_q.front();
+          auto op   = data.get_pkt_operation();
+
+          if( op == common_layer_cmds::cleanup )
+          {
+            std::cout << "Found cleanup command" << std::endl;
+            _cleanup_ds( _input_q.front().get_data(), out );          
+          }
+          else out.push_back( data.get_data() );
+
           _input_q.pop();
         }
       }
@@ -173,7 +190,7 @@ class InOutLayer : public base_layer<InOutLayer<InOutType>, InOutPacket >
 
     int _cleanup_ds(InOutPacket&& in, InOutPktVec& out )
     {
-      std::cout << "cleanup_ds output_mux... " << std::endl;
+      std::cout << "cleanup_ds input_mux... " << std::endl;
       return 0;
     }
 

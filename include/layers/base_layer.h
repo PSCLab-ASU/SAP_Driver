@@ -31,7 +31,6 @@ class base_layer
         {
           std::cout << "Ctor for layer_iterator (start)" << std::endl;
           _offset = 0;
-          std::cout << "processing input packets... " << r.size() << std::endl;
           _l_ptr->process_packets( *_it, _egress_queue);
           std::cout << "egress queue size = " << _egress_queue.size() << std::endl;
 
@@ -39,7 +38,7 @@ class base_layer
         else 
         {
           std::cout << "Ctor for layer_iterator (end)" << std::endl;
-          _offset = r.size();
+          //_offset = r.size();
         }
          
       }
@@ -57,9 +56,10 @@ class base_layer
         _l_ptr->process_packets( input, _pregress_queue);
         std::cout << "layer_iterator ++operator : " << _pregress_queue.size() << std::endl;
 
-        std::cout << "moving pregress_queue to eqgress " << std::endl;
+        std::cout << "moving pregress_queue to eqgress : " << _egress_queue.size() << std::endl;
         _egress_queue.pop_back();
  
+        std::cout << "popped pregress_queue to eqgress " << std::endl;
         _egress_queue.insert(_egress_queue.begin(), 
                              _pregress_queue.rbegin(), 
                              _pregress_queue.rend() );       
@@ -83,7 +83,8 @@ class base_layer
       bool operator==(layer_iterator<Range> const& rhs) const 
       { 
         std::cout << "Are iterators equal " << _offset  << " == " << rhs._offset << std::endl; 
-        return (_offset == rhs._offset ); 
+        //return (_offset == rhs._offset ); 
+        return false; 
       }
 
   private:

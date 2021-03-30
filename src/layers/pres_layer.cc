@@ -23,6 +23,8 @@ PresentationLayer<InputType>::PresentationLayer()
   this->template register_cmd<FromPhy>(self, &class_type::_self_us);
   this->template register_cmd<FromApp>(cleanup, &class_type::_cleanup_ds);
   this->template register_cmd<FromPhy>(cleanup, &class_type::_cleanup_us);
+  this->template register_cmd<FromApp>(command1, &class_type::_func0);
+  this->template register_cmd<FromPhy>(command1, &class_type::_func1);
 
 }
 
@@ -58,6 +60,22 @@ int PresentationLayer<InputType>::_cleanup_ds(PresentationPacket&& in, Presentat
 
 template<typename InputType>
 int PresentationLayer<InputType>::_cleanup_us(PresentationPacket&& in, PresentationPktVec& out )
+{
+
+  std::cout << "Calling Presentation func4..." << std::endl;
+  return 0;
+}
+
+template<typename InputType>
+int PresentationLayer<InputType>::_func0(PresentationPacket&& in, PresentationPktVec& out )
+{
+
+  std::cout << "Calling Presentation func3..." << std::endl;
+  return 0;
+}
+
+template<typename InputType>
+int PresentationLayer<InputType>::_func1(PresentationPacket&& in, PresentationPktVec& out )
 {
 
   std::cout << "Calling Presentation func4..." << std::endl;

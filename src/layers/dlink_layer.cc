@@ -23,6 +23,7 @@ DatalinkLayer<InputType>::DatalinkLayer()
   this->template register_cmd<FromPhy>(self, &class_type::_self_us);
   this->template register_cmd<FromApp>(cleanup, &class_type::_cleanup_ds);
   this->template register_cmd<FromPhy>(cleanup, &class_type::_cleanup_us);
+  std::cout << "1)Complete DatalinkLayer functions" << std::endl;
   ////////////////////////////////////////////////////////////////////////////
 
 }
