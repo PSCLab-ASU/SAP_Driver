@@ -31,14 +31,14 @@ DatalinkLayer<InputType>::DatalinkLayer()
 template<typename InputType>
 int DatalinkLayer<InputType>::_noop(DatalinkPacket&& in, DatalinkPktVec& out )
 {
-  std::cout << "Calling Datalink func0..." << std::endl;
+  std::cout << "Calling Datalink noop..." << std::endl;
   return 0;
 }
   
 template<typename InputType>
 int DatalinkLayer<InputType>::_self_ds(DatalinkPacket&& in, DatalinkPktVec& out )
 {
-  std::cout << "Calling Datalink func1..." << std::endl;
+  std::cout << "Calling Datalink self_ds..." << std::endl;
   return 0;
 }
 
@@ -46,7 +46,7 @@ template<typename InputType>
 int DatalinkLayer<InputType>::_self_us(DatalinkPacket&& in, DatalinkPktVec& out )
 {
 
-  std::cout << "Calling Datalink func2..." << std::endl;
+  std::cout << "Calling Datalink self_us..." << std::endl;
   return 0;
 }
 
@@ -54,7 +54,7 @@ template<typename InputType>
 int DatalinkLayer<InputType>::_cleanup_ds(DatalinkPacket&& in, DatalinkPktVec& out )
 {
 
-  std::cout << "Calling Datalink func3..." << std::endl;
+  std::cout << "Calling Datalink cleanup_ds..." << std::endl;
   return 0;
 }
 
@@ -62,6 +62,6 @@ template<typename InputType>
 int DatalinkLayer<InputType>::_cleanup_us(DatalinkPacket&& in, DatalinkPktVec& out )
 {
 
-  std::cout << "Calling Datalink func4..." << std::endl;
+  std::cout << "Calling Datalink cleanup_us..." << std::endl;
   return 0;
 }

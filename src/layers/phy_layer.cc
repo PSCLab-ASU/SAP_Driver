@@ -36,7 +36,7 @@ int PhyLayer<InputType>::_noop(PhyPacket&& in, PhyPktVec& out )
 template<typename InputType>
 int PhyLayer<InputType>::_self_ds(PhyPacket&& in, PhyPktVec& out )
 {
-  std::cout << "Calling Phy func1..." << std::endl;
+  std::cout << "Calling Phy self_ds..." << std::endl;
   return 0;
 }
 
@@ -44,7 +44,7 @@ template<typename InputType>
 int PhyLayer<InputType>::_self_us(PhyPacket&& in, PhyPktVec& out )
 {
 
-  std::cout << "Calling Phy func2..." << std::endl;
+  std::cout << "Calling Phy self_us..." << std::endl;
   return 0;
 }
 
@@ -52,7 +52,15 @@ template<typename InputType>
 int PhyLayer<InputType>::_cleanup_ds(PhyPacket&& in, PhyPktVec& out )
 {
 
-  std::cout << "Calling Phy func3..." << std::endl;
+  std::cout << "Calling Phy cleanup_ds..." << std::endl;
+  std::cout << "----Marking packet to opposite stream----" << std::endl;
+  //sending to internal queue
+  in.mark_as_resp();
+
+  //push to output
+  std::cout << "----forwarding packet to upstream----" << std::endl;
+  out.push_back(in);
+  
   return 0;
 }
 
@@ -60,6 +68,6 @@ template<typename InputType>
 int PhyLayer<InputType>::_cleanup_us(PhyPacket&& in, PhyPktVec& out )
 {
 
-  std::cout << "Calling Phy func4..." << std::endl;
+  std::cout << "Calling Phy cleanup_us..." << std::endl;
   return 0;
 }

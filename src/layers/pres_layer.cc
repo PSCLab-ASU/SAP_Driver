@@ -31,14 +31,14 @@ PresentationLayer<InputType>::PresentationLayer()
 template<typename InputType>
 int PresentationLayer<InputType>::_noop(PresentationPacket&& in, PresentationPktVec& out )
 {
-  std::cout << "Calling Presentation func0..." << std::endl;
+  std::cout << "Calling Presentation noop..." << std::endl;
   return 0;
 }
   
 template<typename InputType>
 int PresentationLayer<InputType>::_self_ds(PresentationPacket&& in, PresentationPktVec& out )
 {
-  std::cout << "Calling Presentation func1..." << std::endl;
+  std::cout << "Calling Presentation self_ds..." << std::endl;
   return 0;
 }
 
@@ -46,7 +46,7 @@ template<typename InputType>
 int PresentationLayer<InputType>::_self_us(PresentationPacket&& in, PresentationPktVec& out )
 {
 
-  std::cout << "Calling Presentation func2..." << std::endl;
+  std::cout << "Calling Presentation self_us..." << std::endl;
   return 0;
 }
 
@@ -54,7 +54,7 @@ template<typename InputType>
 int PresentationLayer<InputType>::_cleanup_ds(PresentationPacket&& in, PresentationPktVec& out )
 {
 
-  std::cout << "Calling Presentation func3..." << std::endl;
+  std::cout << "Calling Presentation cleanup_ds..." << std::endl;
   return 0;
 }
 
@@ -62,7 +62,7 @@ template<typename InputType>
 int PresentationLayer<InputType>::_cleanup_us(PresentationPacket&& in, PresentationPktVec& out )
 {
 
-  std::cout << "Calling Presentation func4..." << std::endl;
+  std::cout << "Calling Presentation cleanup_us..." << std::endl;
   return 0;
 }
 
@@ -70,7 +70,7 @@ template<typename InputType>
 int PresentationLayer<InputType>::_func0(PresentationPacket&& in, PresentationPktVec& out )
 {
 
-  std::cout << "Calling Presentation func3..." << std::endl;
+  std::cout << "Calling Presentation func0..." << std::endl;
   return 0;
 }
 
@@ -78,6 +78,6 @@ template<typename InputType>
 int PresentationLayer<InputType>::_func1(PresentationPacket&& in, PresentationPktVec& out )
 {
 
-  std::cout << "Calling Presentation func4..." << std::endl;
+  std::cout << "Calling Presentation func1..." << std::endl;
   return 0;
 }

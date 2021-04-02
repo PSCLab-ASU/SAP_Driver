@@ -29,14 +29,14 @@ NetworkLayer<InputType>::NetworkLayer()
 template<typename InputType>
 int NetworkLayer<InputType>::_noop(NetworkPacket&& in, NetworkPktVec& out )
 {
-  std::cout << "Calling Network func0..." << std::endl;
+  std::cout << "Calling Network noop..." << std::endl;
   return 0;
 }
   
 template<typename InputType>
 int NetworkLayer<InputType>::_self_ds(NetworkPacket&& in, NetworkPktVec& out )
 {
-  std::cout << "Calling Network func1..." << std::endl;
+  std::cout << "Calling Network self_ds..." << std::endl;
   return 0;
 }
 
@@ -44,7 +44,7 @@ template<typename InputType>
 int NetworkLayer<InputType>::_self_us(NetworkPacket&& in, NetworkPktVec& out )
 {
 
-  std::cout << "Calling Network func2..." << std::endl;
+  std::cout << "Calling Network self_us..." << std::endl;
   return 0;
 }
 
@@ -52,7 +52,7 @@ template<typename InputType>
 int NetworkLayer<InputType>::_cleanup_ds(NetworkPacket&& in, NetworkPktVec& out )
 {
 
-  std::cout << "Calling Network func3..." << std::endl;
+  std::cout << "Calling Network cleanup_ds..." << std::endl;
   return 0;
 }
 
@@ -60,6 +60,6 @@ template<typename InputType>
 int NetworkLayer<InputType>::_cleanup_us(NetworkPacket&& in, NetworkPktVec& out )
 {
 
-  std::cout << "Calling Network func4..." << std::endl;
+  std::cout << "Calling Network cleanup_us..." << std::endl;
   return 0;
 }

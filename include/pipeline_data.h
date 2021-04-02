@@ -21,9 +21,20 @@ struct base_pipeline_data
     std::cout << "base_pipeline_data(....) " << std::endl; 
   }
 
+  void mark_as_response()
+  {
+    std::cout << "Mark as response... " << dst << std::endl;  
+    dst = true;
+  }
+
+  void reset_dst()
+  {
+    dst = false;
+  }
+
   const bool& get_dst()
   {
-    std::cout << "DST : " << dst << std::endl;  
+    //std::cout << "DST : " << dst << std::endl;  
     return dst;
   }
 
@@ -95,6 +106,16 @@ struct BasePacket
   {
     //_base->pack_header( hdr );
   }  
+
+  void mark_as_resp()
+  {
+    _base->mark_as_response(); 
+  }
+
+  void reset_dst()
+  {
+    _base->reset_dst();
+  }
 
   private:
 
@@ -169,6 +190,12 @@ struct pipeline_data
       return _data->get_dst();
     else
       return queue_dst;
+  }
+
+  void reset_dst()
+  {
+    if( (bool) _data )
+      return _data->reset_dst();
   }
 
   private:

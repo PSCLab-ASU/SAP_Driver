@@ -22,7 +22,7 @@ SAPLibPImpl::SAPLibPImpl()
   //starting forward flowa
   _forward_flow = std::jthread(std::ref(*this), from_app);
   //starting backwards flow 
-  //_backward_flow = std::jthread(std::ref(*this), from_phy);
+  _backward_flow = std::jthread(std::ref(*this), from_phy);
   
   std::cout << "Complete one iteration" << std::endl;
 

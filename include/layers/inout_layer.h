@@ -81,8 +81,8 @@ class InOutLayer : public base_layer<InOutLayer<InOutType>, InOutPacket >
       
   
       std::cout << "0)Registrating InOutLayer functions" << std::endl;
-      this->template register_cmd<FromApp>(noop, &class_type::_noop);
-      this->template register_cmd<FromPhy>(noop, &class_type::_noop);
+      this->template register_cmd<FromApp>(noop, &class_type::_noop_ds);
+      this->template register_cmd<FromPhy>(noop, &class_type::_noop_us);
       this->template register_cmd<FromApp>(cleanup, &class_type::_cleanup_ds);
       this->template register_cmd<FromPhy>(cleanup, &class_type::_cleanup_us);
       /////////////////////////////////////////////////////////////////////////////////////
@@ -141,8 +141,15 @@ class InOutLayer : public base_layer<InOutLayer<InOutType>, InOutPacket >
 
   private:
      
-    int _noop( InOutPacket&& in, InOutPktVec& out ) 
+    int _noop_ds( InOutPacket&& in, InOutPktVec& out ) 
     {
+      std::cout << "noop_ds..." << std::endl;  
+      return 0;
+    }
+
+    int _noop_us( InOutPacket&& in, InOutPktVec& out ) 
+    {
+      std::cout << "noop_us..." << std::endl;  
       return 0;
     }
  
@@ -169,7 +176,8 @@ class InOutLayer : public base_layer<InOutLayer<InOutType>, InOutPacket >
             std::cout << "Found cleanup command" << std::endl;
             _cleanup_ds( _input_q.front().get_data(), out );          
           }
-          else out.push_back( data.get_data() );
+          //append cleanup packet to downstream
+          out.push_back( data.get_data() );
 
           _input_q.pop();
         }

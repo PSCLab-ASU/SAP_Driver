@@ -29,14 +29,14 @@ TransportLayer<InputType>::TransportLayer()
 template<typename InputType>
 int TransportLayer<InputType>::_noop(TransportPacket&& in, TransportPktVec& out )
 {
-  std::cout << "Calling Transport func0..." << std::endl;
+  std::cout << "Calling Transport noop..." << std::endl;
   return 0;
 }
   
 template<typename InputType>
 int TransportLayer<InputType>::_self_ds(TransportPacket&& in, TransportPktVec& out )
 {
-  std::cout << "Calling Transport func1..." << std::endl;
+  std::cout << "Calling Transport self_ds..." << std::endl;
   return 0;
 }
 
@@ -44,7 +44,7 @@ template<typename InputType>
 int TransportLayer<InputType>::_self_us(TransportPacket&& in, TransportPktVec& out )
 {
 
-  std::cout << "Calling Transport func2..." << std::endl;
+  std::cout << "Calling Transport self_us..." << std::endl;
   return 0;
 }
 
@@ -52,7 +52,7 @@ template<typename InputType>
 int TransportLayer<InputType>::_cleanup_ds(TransportPacket&& in, TransportPktVec& out )
 {
 
-  std::cout << "Calling Transport func3..." << std::endl;
+  std::cout << "Calling Transport cleanup_ds..." << std::endl;
   return 0;
 }
 
@@ -60,6 +60,6 @@ template<typename InputType>
 int TransportLayer<InputType>::_cleanup_us(TransportPacket&& in, TransportPktVec& out )
 {
 
-  std::cout << "Calling Transport func4..." << std::endl;
+  std::cout << "Calling Transport cleanup_us..." << std::endl;
   return 0;
 }

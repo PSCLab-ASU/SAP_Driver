@@ -40,9 +40,11 @@ class layer_cmd_processor
       //takes queue packets and processes all othe them
       std::cout << "Reading elements from the queue" << std::endl;
       while( !_other_q_empty() ) 
-      {
+      { 
         auto q_element = _other_q_pop();
-        std::ranges::for_each( q_element, [&](auto& in){ _process_single(in, temp_out);  }  ); 
+        std::ranges::for_each( q_element, [&](auto& in){ 
+          in.reset_dst();
+          _process_single(in, temp_out);  }  ); 
       }
       //adding current layer packets
       std::cout << "Adding current layers packets" << std::endl;
@@ -128,7 +130,7 @@ class layer_cmd_processor
     void _process_single (typename typed_data::value_type& in, typed_data& out)
     {
       std::cout << "operator() single element processing" << std::endl;
-
+  
       if( in || Override )
       {
         //get the operation

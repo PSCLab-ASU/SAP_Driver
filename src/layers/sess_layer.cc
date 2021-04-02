@@ -29,14 +29,14 @@ SessionLayer<InputType>::SessionLayer()
 template<typename InputType>
 int SessionLayer<InputType>::_noop(SessionPacket&& in, SessionPktVec& out )
 {
-  std::cout << "Calling Session func0..." << std::endl;
+  std::cout << "Calling Session noop..." << std::endl;
   return 0;
 }
   
 template<typename InputType>
 int SessionLayer<InputType>::_self_ds(SessionPacket&& in, SessionPktVec& out )
 {
-  std::cout << "Calling Session func1..." << std::endl;
+  std::cout << "Calling Session self_ds..." << std::endl;
   return 0;
 }
 
@@ -44,7 +44,7 @@ template<typename InputType>
 int SessionLayer<InputType>::_self_us(SessionPacket&& in, SessionPktVec& out )
 {
 
-  std::cout << "Calling Session func2..." << std::endl;
+  std::cout << "Calling Session self_us..." << std::endl;
   return 0;
 }
 
@@ -52,7 +52,7 @@ template<typename InputType>
 int SessionLayer<InputType>::_cleanup_ds(SessionPacket&& in, SessionPktVec& out )
 {
 
-  std::cout << "Calling Session func3..." << std::endl;
+  std::cout << "Calling Session cleanup_ds..." << std::endl;
   return 0;
 }
 
@@ -60,6 +60,6 @@ template<typename InputType>
 int SessionLayer<InputType>::_cleanup_us(SessionPacket&& in, SessionPktVec& out )
 {
 
-  std::cout << "Calling Session func4..." << std::endl;
+  std::cout << "Calling Session cleanup_us..." << std::endl;
   return 0;
 }

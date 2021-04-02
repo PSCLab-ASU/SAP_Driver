@@ -45,6 +45,7 @@ struct pipeline_impl
 
     if constexpr( plf == Pipelineflow::FromApp)
     {
+      std::lock_guard lk( _mu );
       std::get<0>(_inout_intf) = Pipelineflow::FromApp;
       auto build_pipeline = (( (std::move(sleepy_hb) | down_input_conv) | std::get<0>(_pipeline)(&_inout_intf)  ) | ... | std::get<Is+1>(_pipeline) ); 
 
@@ -52,6 +53,7 @@ struct pipeline_impl
     }
     else
     {
+      std::lock_guard lk( _mu );
       std::get<0>(_inout_intf) = Pipelineflow::FromPhy;
       auto build_pipeline = (( std::move(sleepy_hb) | up_input_conv ) | ... | std::get<N-Is>(_pipeline) ) | std::get<0>(_pipeline)(&_inout_intf); 
       return build_pipeline;
@@ -79,6 +81,7 @@ struct pipeline_impl
     return _pop();
   }
 
+  std::mutex _mu;
   InOutIntf  _inout_intf;
 
   _pl_definition  _pipeline;
