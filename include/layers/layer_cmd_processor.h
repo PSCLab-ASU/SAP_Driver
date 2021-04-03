@@ -43,7 +43,6 @@ class layer_cmd_processor
       { 
         auto q_element = _other_q_pop();
         std::ranges::for_each( q_element, [&](auto& in){ 
-          in.reset_dst();
           _process_single(in, temp_out);  }  ); 
       }
       //adding current layer packets
@@ -98,11 +97,22 @@ class layer_cmd_processor
                                     std::negate{}, 
                                     &typed_data::value_type::get_dst )  ) 
       {
-        std::cout << "All goes queue..." << std::endl;
+        std::cout << "All goes queue..." << std::endl;       
+        std::ranges::for_each(processed_data, [](auto& in){ in.reset_dst(); } );
+
         _write_data_to_q( std::move(processed_data) );
 
+        auto cleanup_it = std::ranges::find(input, common_layer_cmds::cleanup, 
+                                            &typed_data::value_type::get_pkt_operation);
+
         //adding empty downstream packet to continue heart beat
-        output.push_back( typed_data{} );
+        if( cleanup_it != std::end(processed_data) )
+        {
+          std::cout << "Found cleanup token in the output" << std::endl;
+          output.push_back( {*cleanup_it} );
+        }
+        else
+          output.push_back( typed_data{} );
         
       }
       else
@@ -120,6 +130,9 @@ class layer_cmd_processor
         //moving elements to the queue
         std::ranges::move(std::begin(processed_data), 
                           std::begin(it), std::back_inserter(q_data) );
+
+        std::ranges::for_each(q_data, [](auto& in){ in.reset_dst(); } );
+
         _write_data_to_q( std::move(q_data) );
         
       } 

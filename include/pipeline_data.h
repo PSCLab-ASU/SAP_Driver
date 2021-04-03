@@ -44,7 +44,7 @@ struct base_pipeline_data
     _ctrl[0] = op;
   }
 
-  uchar get_op(){
+  uchar& get_op(){
     std::cout << "get_op()" << std::endl;
     return _ctrl[0];
   }
@@ -177,11 +177,13 @@ struct pipeline_data
       _data->set_op( op );
   }
 
-  uchar get_pkt_operation(){
+  const uchar& get_pkt_operation(){
     if( (bool) _data )
+    {
       return _data->get_op();
+    }
     else
-      return 0; //<----- 0 will always be self
+      return empty; //<----- 0 will always be self
   } 
 
   const bool& get_dst() const
@@ -200,6 +202,7 @@ struct pipeline_data
 
   private:
 
+    uchar empty = 0;
     int _heartbeat;
     bool queue_dst = false; //down stream = 0, internal queue = 1
     std::shared_ptr<base_pipeline_data> _data;
