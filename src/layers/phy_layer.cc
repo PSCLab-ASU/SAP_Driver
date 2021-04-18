@@ -1,3 +1,18 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <cstring>
+#include <sys/types.h>
+#include <linux/if_ether.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <sys/socket.h>
+#include <linux/if_packet.h>
+#include <linux/if_arp.h>
+#include <initializer_list>
+#include <iostream>
 #include "include/layers/phy_layer.h"
 
 PhyPacket::PhyPacket( typename BasePacket::type base )
@@ -5,6 +20,12 @@ PhyPacket::PhyPacket( typename BasePacket::type base )
 {
 
 
+}
+
+PhyPacket::PhyPacket( ushort op )
+: BasePacket( std::make_shared<base_pipeline_data>() )
+{
+  set_op( op );
 }
 
 template<typename InputType>
@@ -23,6 +44,8 @@ PhyLayer<InputType>::PhyLayer()
   this->template register_cmd<FromPhy>(self, &class_type::_self_us);
   this->template register_cmd<FromApp>(cleanup, &class_type::_cleanup_ds);
   this->template register_cmd<FromPhy>(cleanup, &class_type::_cleanup_us);
+  this->template register_cmd<FromApp>(PhyPacket::send, &class_type::_send);
+  this->template register_cmd<FromApp>(PhyPacket::get_mac, &class_type::_get_mac);
 
 }
 
@@ -44,7 +67,7 @@ template<typename InputType>
 int PhyLayer<InputType>::_self_us(PhyPacket&& in, PhyPktVec& out )
 {
 
-  std::cout << "Calling Phy self_us..." << std::endl;
+  std::cout << "read all socket(s) from here with recvFrom." << std::endl;
   return 0;
 }
 
@@ -69,5 +92,30 @@ int PhyLayer<InputType>::_cleanup_us(PhyPacket&& in, PhyPktVec& out )
 {
 
   std::cout << "Calling Phy cleanup_us..." << std::endl;
+  return 0;
+}
+
+template<typename InputType>
+int PhyLayer<InputType>::_get_mac(PhyPacket&& in, PhyPktVec& out )
+{
+  std::cout << "Calling Phy cleanup_us..." << std::endl;
+  return 0;
+}
+
+template<typename InputType>
+int PhyLayer<InputType>::_send(PhyPacket&& in, PhyPktVec& out )
+{
+  _internal_send( std::forward<PhyPacket>(in) );
+
+  std::cout << "Calling Phy cleanup_us..." << std::endl;
+  return 0;
+}
+
+template<typename InputType>
+int PhyLayer<InputType>::_internal_send(PhyPacket&& in )
+{
+  int sockfd, n;
+  int send_result = 0;
+  struct sockaddr_ll socket_address; 
   return 0;
 }

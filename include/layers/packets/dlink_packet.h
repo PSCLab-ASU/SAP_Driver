@@ -1,0 +1,49 @@
+#include <iostream>
+#include <ranges>
+#include "include/utils.h"
+#include "include/pipeline_data.h"
+#include "include/layers/packets/net_packet.h"
+
+#pragma once
+
+struct DatalinkPacket : public BasePacket
+{
+  using BasePacket::get_base;
+
+  struct ctrl_intf
+  {
+    friend class DatalinkPacket;
+
+    public :
+    
+      auto get(){ return _ctrl; }
+
+    private:
+
+      ctrl_intf( const std::vector<uchar>& ctrl )
+      : _ctrl( ctrl ) 
+      {}     
+ 
+      ctrl_intf( ){}
+
+      std::vector<uchar> _ctrl;  
+    
+  };
+
+  ctrl_intf get_ctrl()
+  {
+    return ctrl_intf( get_ctrl() );
+  }
+
+  static ctrl_intf create_ctrl( )
+  {
+    return ctrl_intf();
+  }
+
+  DatalinkPacket( );
+   //restriction interface view
+  DatalinkPacket( typename BasePacket::type base );
+
+  enum : unsigned char { set_mac=NetworkPacket::END+1, END };
+};
+

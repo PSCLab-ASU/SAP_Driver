@@ -3,52 +3,16 @@
 #include "include/utils.h"
 #include "include/layers/base_layer.h"
 #include "include/pipeline_data.h"
+#include "include/layers/packets/dlink_packet.h"
+#include "include/layers/packets/phy_packet.h"
 
 #pragma once
+
 struct DLinkSM
 {
 
 };
 
-
-struct DatalinkPacket : public BasePacket
-{
-  using BasePacket::get_base;
-
-  struct ctrl_intf
-  {
-    friend class DatalinkPacket;
-
-    public :
-    
-      auto get(){ return _ctrl; }
-
-    private:
-
-      ctrl_intf( const std::vector<uchar>& ctrl )
-      : _ctrl( ctrl ) 
-      {}     
- 
-      ctrl_intf( ){}
-
-      std::vector<uchar> _ctrl;  
-    
-  };
-
-  ctrl_intf get_ctrl()
-  {
-    return ctrl_intf( get_ctrl() );
-  }
-
-  static ctrl_intf create_ctrl( )
-  {
-    return ctrl_intf();
-  }
-   //restriction interface view
-  DatalinkPacket( typename BasePacket::type base );
-
-  enum : unsigned char { var=common_layer_cmds::END+1 };
-};
 
 template< typename InputType=NullType>
 class DatalinkLayer : public base_layer<DatalinkLayer<InputType>, DatalinkPacket >
@@ -57,6 +21,9 @@ class DatalinkLayer : public base_layer<DatalinkLayer<InputType>, DatalinkPacket
 
     using InputType_t = InputType;
     using DatalinkPktVec = std::vector<DatalinkPacket>;
+
+    using base_layer<DatalinkLayer<InputType>, DatalinkPacket >::get_hb_count;
+    using base_layer<DatalinkLayer<InputType>, DatalinkPacket >::is_inited;
 
     DatalinkLayer();
 
@@ -93,7 +60,18 @@ class DatalinkLayer : public base_layer<DatalinkLayer<InputType>, DatalinkPacket
 
     int _cleanup_us(DatalinkPacket&& in, DatalinkPktVec& out );
 
+    int _set_mac_addr(DatalinkPacket&& in, DatalinkPktVec& out );
+
+    void _init(  DatalinkPktVec& out );
+
+    void _self_ds_lldp_pkt_gen( DatalinkPktVec& out );
+
+    DatalinkPacket _req_mac_address();
+
     static DLinkSM _sm;
+
+    const size_t _lldp_interval = 100;
+  
 };
 
 template class DatalinkLayer<NullType>;

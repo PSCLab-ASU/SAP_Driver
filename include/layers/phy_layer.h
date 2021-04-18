@@ -3,51 +3,13 @@
 #include "include/utils.h"
 #include "include/layers/base_layer.h"
 #include "include/pipeline_data.h"
+#include "include/layers/packets/phy_packet.h"
 
 #pragma once
+
 struct PhySM
 {
 
-};
-
-
-struct PhyPacket : public BasePacket
-{
-  using BasePacket::get_base;
-
-  struct ctrl_intf
-  {
-    friend class PhyPacket;
-
-    public :
-    
-      auto get(){ return _ctrl; }
-
-    private:
-
-      ctrl_intf( const std::vector<uchar>& ctrl )
-      : _ctrl( ctrl ) 
-      {}     
- 
-      ctrl_intf( ){}
-
-      std::vector<uchar> _ctrl;  
-    
-  };
-
-  ctrl_intf get_ctrl()
-  {
-    return ctrl_intf( get_ctrl() );
-  }
-
-  static ctrl_intf create_ctrl( )
-  {
-    return ctrl_intf();
-  }
-   //restriction interface view
-  PhyPacket( typename BasePacket::type base );
-
-  enum : unsigned char { var=common_layer_cmds::END+1 };
 };
 
 template< typename InputType=NullType>
@@ -92,6 +54,12 @@ class PhyLayer : public base_layer<PhyLayer<InputType>, PhyPacket >
     int _cleanup_ds(PhyPacket&& in, PhyPktVec& out );
 
     int _cleanup_us(PhyPacket&& in, PhyPktVec& out );
+
+    int _get_mac(PhyPacket&& in, PhyPktVec& out );
+
+    int _send(PhyPacket&& in, PhyPktVec& out );
+
+    int _internal_send(PhyPacket&& in );
 
     static PhySM _sm;
 };

@@ -92,9 +92,10 @@ class base_layer
       Range *  _r_ptr;
       Derived * _l_ptr;
       bool   _start_end;
-      size_t _offset = 0; 
+      size_t _offset = 0;
       decltype(std::declval<Range>().begin() ) _iter;
       std::vector<value_type> _egress_queue;
+      
   };
  
     constexpr base_layer( )
@@ -116,6 +117,11 @@ class base_layer
     {
       std::cout << "Calling base_layer end()" << std::endl;
       return layer_iterator<R>(r, _Impl(), false );
+    }
+
+    void _incr_heart_beat()
+    {
+      heart_beat++; 
     }
 
     template<typename R, typename Q>
@@ -141,6 +147,8 @@ class base_layer
         std::cout << "Unrecognized input type" << std::endl;
       }
 
+      _incr_heart_beat();
+      _inited = true;
 
     }
 
@@ -157,11 +165,22 @@ class base_layer
       
     }
 
-  
+    size_t get_hb_count() const
+    {
+      return heart_beat;
+    }  
+
+    bool is_inited()
+    {
+      return _inited;
+    }
+
     Derived * _Impl() { return static_cast<Derived*>(this); } 
 
     private :
 
+      bool  _inited=false;
+      size_t heart_beat = 0; 
       inline static layer_cmd_processor<Pipelineflow::FromApp, DataIntf, Derived> _downstream_cmd_proc;
       inline static layer_cmd_processor<Pipelineflow::FromPhy, DataIntf, Derived> _upstream_cmd_proc;
    

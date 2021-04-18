@@ -58,6 +58,12 @@ struct base_pipeline_data
   {
     _ctrl = ctrl;
   }
+
+  void append_data( size_t nbytes, uchar * data )
+  {
+    for(size_t i=0; i < nbytes; i++) 
+      _data.push_back( data[i] );
+  }
  
   void pack_header( const std::vector<uchar>& hdr )
   {
@@ -85,7 +91,7 @@ struct BasePacket
   : _base (base)
   {}
 
-  type& get_base()
+  type get_base()
   { 
     return _base;
   }
@@ -106,6 +112,20 @@ struct BasePacket
   {
     //_base->pack_header( hdr );
   }  
+
+  template<typename T>
+  void append_data( std::vector<T> in )
+  {
+    size_t nbytes = sizeof(T)*in.size();
+    void * raw = in.data();
+       
+    _base->append_data( nbytes, (uchar *) raw );
+  }
+
+  void set_op( ushort op )
+  {
+    _base->set_op( op );
+  }
 
   void mark_as_resp()
   {
