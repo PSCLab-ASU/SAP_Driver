@@ -1,6 +1,6 @@
 #include "include/sap_impl.h"
 #include <mutex>
-
+#include <vector>
 
 class SAPLib
 {
@@ -9,7 +9,7 @@ class SAPLib
 
     SAPLib();
 
-    void init();
+    void init( std::vector<std::string> );
 
     void finalize();
 

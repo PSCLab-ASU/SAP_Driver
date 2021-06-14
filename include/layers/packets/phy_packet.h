@@ -16,7 +16,13 @@ struct PhyPacket : public BasePacket
 
     public :
     
-      auto get(){ return _ctrl; }
+      auto& get(){ return _ctrl; }
+  
+      void append_data( ushort val )
+      {
+        std::cout << " Appending ctrl data : " << val << std::endl;
+        _ctrl.push_back(val);
+      }
 
     private:
 
@@ -30,9 +36,21 @@ struct PhyPacket : public BasePacket
     
   };
 
+
   ctrl_intf get_ctrl()
   {
-    return ctrl_intf( get_ctrl() );
+    auto ctl = BasePacket::get_ctrl();
+    return ctl;
+  }
+
+  auto get_ctrl_data()
+  {
+    auto ctl = get_ctrl();
+    auto data = ctl.get();
+    
+    //incremented iterator once to bypass the op code
+    //being saved in the first slot       
+    return std::vector<uchar>( std::next( data.begin() ), data.end() );
   }
 
   static ctrl_intf create_ctrl( )
@@ -45,6 +63,6 @@ struct PhyPacket : public BasePacket
    //restriction interface view
   PhyPacket( typename BasePacket::type base );
 
-  enum : unsigned char { send=DatalinkPacket::END+1, get_mac, END };
+  enum : unsigned char { send=DatalinkPacket::END+1, get_mac, set_intfs, END };
 };
 

@@ -3,6 +3,8 @@
 #include <thread>
 #include "include/sap_impl.h"
 #include "include/utils.h"
+#include "include/layers/packets/phy_packet.h"
+
 
 SAPLibPImpl::SAPLibPImpl()
 {
@@ -40,10 +42,27 @@ void SAPLibPImpl::operator()( std::stop_token stop_token, std::integral_constant
 
 
 
-void SAPLibPImpl::init()
+void SAPLibPImpl::init( std::vector<std::string> intfs )
 {
   std::unique_lock lk(_app_mu);
   _app_cv.wait(lk);
+
+  // configure interfaces
+  PhyPacket p( PhyPacket::set_intfs );
+  
+  std::ranges::for_each(intfs, [&](auto intf){
+    const unsigned char len = (const uchar) intf.size();
+    p.append_ctrl_data(1,  &len );
+    p.append_data( intf.size(), (const unsigned char *) intf.c_str() );
+  });
+
+  //null character
+  const unsigned char ZERO[1] = {0};
+  p.append_data(1, ZERO );
+
+  _pipeline.push( p.get_base() );
+
+   
 }
 
 

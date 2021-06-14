@@ -4,7 +4,7 @@
 #include <thread>
 #include <ranges>
 #include <mutex>
-
+#include <vector>
 #include "include/utils.h"
 #include "include/pipeline.h"
 #include "include/pipeline_data.h"
@@ -19,7 +19,7 @@ class SAPLibPImpl
   
   public :
   
-    void init(); 
+    void init( std::vector<std::string> ); 
 
     void finalize(); 
 

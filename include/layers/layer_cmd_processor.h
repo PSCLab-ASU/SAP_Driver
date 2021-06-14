@@ -151,7 +151,7 @@ class layer_cmd_processor
 
         if( auto cmd = _command_processor.find(op); cmd != _command_processor.end() )
         {
-          std::cout << "Calling command ...." << std::endl;
+          std::cout << "Calling command .... : " << ( (ushort ) op) << std::endl;
           //process input
           func_out_parm temp;   
           cmd->second( in.get_data(), temp );

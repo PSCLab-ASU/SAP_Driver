@@ -44,14 +44,24 @@ struct base_pipeline_data
     _ctrl[0] = op;
   }
 
+  void set_src(std::string src_mac)
+  {
+    _src = src_mac;
+  }
+
   uchar& get_op(){
     std::cout << "get_op()" << std::endl;
     return _ctrl[0];
   }
 
-  auto get_ctrl()
+  auto& get_ctrl()
   {
     return _ctrl;
+  }
+
+  auto& get_data()
+  {
+    return _data;
   }
 
   void set_ctrl( const std::vector<unsigned char>& ctrl )
@@ -59,7 +69,21 @@ struct base_pipeline_data
     _ctrl = ctrl;
   }
 
-  void append_data( size_t nbytes, uchar * data )
+  void append_ctrl( size_t nbytes, const uchar * data )
+  {
+    for(size_t i=0; i < nbytes; i++) 
+    {
+      printf("Appending ctrl data : %i \n", data[i] );
+      _ctrl.push_back( data[i] );
+    }
+  }
+
+  void allocate_data( size_t bytes )
+  {
+    _data = std::vector<unsigned char>(bytes, 0);
+  }
+
+  void append_data( size_t nbytes, const uchar * data )
   {
     for(size_t i=0; i < nbytes; i++) 
       _data.push_back( data[i] );
@@ -69,6 +93,23 @@ struct base_pipeline_data
   {
     //TBD
   }
+
+  void set_intf_id( int id )
+  {
+    intf_id = id;
+  }
+
+  int get_intf_id()
+  {
+    return intf_id;
+  }
+
+
+  //setting src address
+  std::string _src;
+
+  //which interface it came from
+  int intf_id;
 
   // 0 = downstream, 1 = upstream
   bool dst = false;
@@ -96,8 +137,14 @@ struct BasePacket
     return _base;
   }
 
+  auto& get_data()
+  {
+    return _base->get_data();
+  }
+
   auto get_ctrl()
   {
+    std::cout << "base ctrl pointer : " << ((bool) _base) <<  std::endl;
     return _base->get_ctrl();
   }
  
@@ -111,7 +158,22 @@ struct BasePacket
   void pack_header( std::vector<T> header )
   {
     //_base->pack_header( hdr );
-  }  
+  }
+  
+  void append_ctrl_data( size_t nbytes, const unsigned char * buff)
+  {
+    _base->append_ctrl(nbytes, buff);
+  }
+
+  void append_data( size_t nbytes, const unsigned char * buff)
+  {
+    _base->append_data(nbytes, buff);
+  }
+
+  void allocate_data(size_t bytes)
+  {
+    _base->allocate_data(bytes);
+  }
 
   template<typename T>
   void append_data( std::vector<T> in )
@@ -127,6 +189,11 @@ struct BasePacket
     _base->set_op( op );
   }
 
+  void set_src( std::string src )
+  {
+    _base->set_src( src );
+  }
+
   void mark_as_resp()
   {
     _base->mark_as_response(); 
@@ -135,6 +202,16 @@ struct BasePacket
   void reset_dst()
   {
     _base->reset_dst();
+  }
+
+  void set_intf_id( int id )
+  {
+    _base->set_intf_id(id);
+  }
+
+  int get_intf_id()
+  {
+    return _base->get_intf_id();
   }
 
   private:

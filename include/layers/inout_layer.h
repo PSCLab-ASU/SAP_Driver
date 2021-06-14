@@ -121,9 +121,9 @@ class InOutLayer : public base_layer<InOutLayer<InOutType>, InOutPacket >
         std::cout << "Pushing data into Q" << std::endl;
         while( !_input_q.empty() )
         {
-          std::cout << "Ingressing packet " << std::endl;
           auto& data = _input_q.front();
           auto op   = data.get_pkt_operation();
+          std::cout << "Ingressing packet :  " << std::to_string(op) << std::endl;
 
           if( op == common_layer_cmds::cleanup )
           {

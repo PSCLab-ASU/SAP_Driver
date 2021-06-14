@@ -1,5 +1,7 @@
 #include "include/sap_lib.h"
 #include <iostream>
+#include <vector>
+
 
 SAPLib::SAPLib()
 {
@@ -7,11 +9,11 @@ SAPLib::SAPLib()
 }
 
 
-void SAPLib::init()
+void SAPLib::init(std::vector<std::string> intfs )
 {
   std::cout << "Inside SAPLib::init()..." << std::endl;
   
-  _impl.init();
+  _impl.init(intfs);
 
 }
 

@@ -1,18 +1,13 @@
 #include "include/layers/dlink_layer.h"
 #include "include/layers/phy_layer.h"
-
-
-DatalinkPacket::DatalinkPacket( typename BasePacket::type base )
-: BasePacket ( base )
-{
-
-
-}
+#include "include/layers/packets/dlink_packet.h"
 
 template<typename InputType>
 DatalinkLayer<InputType>::DatalinkLayer()
 {
   using namespace common_layer_cmds;
+  //using namespace DatalinkPacket;
+
   using class_type = DatalinkLayer<InputType>;
 
   const auto FromApp = Pipelineflow::FromApp;
@@ -26,6 +21,7 @@ DatalinkLayer<InputType>::DatalinkLayer()
   this->template register_cmd<FromApp>(cleanup, &class_type::_cleanup_ds);
   this->template register_cmd<FromPhy>(cleanup, &class_type::_cleanup_us);
   this->template register_cmd<FromPhy>(DatalinkPacket::set_mac, &class_type::_set_mac_addr);
+  this->template register_cmd<FromPhy>(discovery, &class_type::_track_device);
   std::cout << "1)Complete DatalinkLayer functions" << std::endl;
   ////////////////////////////////////////////////////////////////////////////
 
@@ -42,8 +38,10 @@ template<typename InputType>
 int DatalinkLayer<InputType>::_self_ds(DatalinkPacket&& in, DatalinkPktVec& out )
 {
   std::cout << "Calling Datalink self_ds..." << std::endl;
-  if( !is_inited() ) _init( out );
-  if( (get_hb_count() % _lldp_interval) == 0 ) _self_ds_lldp_pkt_gen( out );
+  //if( (get_hb_count() % _lldp_interval) == 0 ) 
+
+  //this function checks all the device timers and invalidate if necessary
+  _check_invalidate( out );
 
   return 0;
 }
@@ -82,16 +80,71 @@ int DatalinkLayer<InputType>::_set_mac_addr(DatalinkPacket&& in, DatalinkPktVec&
 }
 
 template<typename InputType>
-void DatalinkLayer<InputType>::_self_ds_lldp_pkt_gen( DatalinkPktVec& out )
+int DatalinkLayer<InputType>::_track_device(DatalinkPacket&& in, DatalinkPktVec& out )
 {
-  PhyPacket phy_packet( PhyPacket::send );
+  std::cout << "Calling track_device..." << std::endl;
 
-  std::vector<uchar> phy_data = {0x01, 0x80, 0xc2, 0x00, 0x00, 0x0e,
-                                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+  auto raw_dev_info = in.try_extract_dev_info();
 
-  phy_packet.append_data( phy_data );
-  
-  out.push_back( phy_packet.get_base() );
+  if( raw_dev_info )
+  {
+    auto dev_info = DatalinkPacket::device_information::deserialize( raw_dev_info.value() );
+
+    if( !_sm.device_exists( dev_info ) )
+    {
+      dev_info.stamp_time();
+      dev_info.set_timeout(_device_timeout);
+
+      _sm.add_device_information( std::move(dev_info) );
+
+      //send it upstream
+      auto res = _packetize_discovery( dev_info );
+      out.push_back(res);
+    }
+    else
+    {
+      //only checks for mac address
+      auto& reged_dev = _sm.get_device_info( dev_info );
+      bool em         = _sm.exact_match( dev_info );
+      bool was_active = reged_dev.is_active();
+
+      reged_dev.stamp_time();
+      reged_dev.activate();
+
+      //updated device_information with latest
+      //discovery parameters
+      if( !em ) reged_dev = dev_info;
+     
+      auto res = _packetize_discovery( reged_dev );
+      out.push_back(res);
+
+    }
+  }
+  else{ std::cout << "No Device information in packet" << std::endl; }
+
+  return 0;
+}
+//////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////........internal........////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////
+
+template<typename InputType>
+void DatalinkLayer<InputType>::_check_invalidate( DatalinkPktVec& out )
+{
+  auto is_changed = std::mem_fn(&DatalinkPacket::device_information::has_state_changed);
+
+  auto flow = _sm._devices.second | std::views::filter( is_changed );
+
+  std::lock_guard lk( _sm._devices.first );
+
+  std::ranges::for_each(_sm._devices.second, std::identity{}, 
+                        &DatalinkPacket::device_information::update_still_alive);
+
+  for(auto& cand_dev : flow ) {
+    auto res = _packetize_discovery( cand_dev );
+    out.push_back(res);
+  }
+                       
 }
 
 template<typename InputType>
@@ -105,3 +158,34 @@ DatalinkPacket DatalinkLayer<InputType>::_req_mac_address( )
 {
   return PhyPacket( PhyPacket::get_mac ).get_base();
 }
+
+template<typename InputType>
+DatalinkPacket DatalinkLayer<InputType>::_packetize_discovery( const DatalinkPacket::device_information& in )
+{
+  DatalinkPacket dp( common_layer_cmds::discovery );
+  const unsigned char len = (const uchar) in._macs.size();
+  const unsigned char zeros[2] = {0x00, 0x00};
+ 
+  //append the number of interfaces
+  dp.append_ctrl_data(1, &len);
+  auto desc = in.serialize_desc();
+
+  std::ranges::for_each( in._macs, [&](auto link)
+  {
+    const unsigned char is_active = (const uchar) link.first;
+
+    dp.append_ctrl_data(1, &is_active);
+    dp.append_data(desc.size(), desc.data() );
+    dp.append_data(2, zeros );
+    dp.append_data(6, (const unsigned char *) link.second.c_str() );
+
+  } );
+   
+  //add the upstream data
+  auto [byte_size, ptr] =  in.get_extra();
+  dp.append_ctrl_data(sizeof(decltype(byte_size) ), (unsigned char *) &byte_size);
+  dp.append_data(byte_size, ptr);
+
+  return dp;
+}
+

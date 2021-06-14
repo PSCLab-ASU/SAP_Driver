@@ -43,6 +43,6 @@ struct SessionPacket : public BasePacket
    //restriction interface view
   SessionPacket( typename BasePacket::type base );
 
-  enum : unsigned char { var=PresentationPacket::END+1, END };
+  enum : unsigned char { discovery=PresentationPacket::END+1, END };
 };
 
