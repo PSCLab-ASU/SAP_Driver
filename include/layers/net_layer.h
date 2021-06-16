@@ -11,6 +11,23 @@
 
 struct NetSM
 {
+  using device_info_reg_t = std::vector<NetworkPacket::device_information>;
+
+  bool device_exists( const device_info_reg_t::value_type& ) const;
+ 
+  bool exact_match( const device_info_reg_t::value_type& ) const;
+ 
+  NetworkPacket::device_information& 
+  get_device_info( const NetworkPacket::device_information& dev_info );
+  
+ 
+  void add_device_information( const NetworkPacket::device_information& dl_dev_info)
+  {
+    std::lock_guard lk(_devices.first);
+    _devices.second.push_back( dl_dev_info );
+  }
+
+  std::pair<std::mutex, device_info_reg_t> _devices;
 
 };
 
@@ -58,7 +75,15 @@ class NetworkLayer : public base_layer<NetworkLayer<InputType>, NetworkPacket >
 
     int _cleanup_us(NetworkPacket&& in, NetworkPktVec& out );
 
-    static NetSM _sm;
+    int _track_device(NetworkPacket&& in, NetworkPktVec& out );
+
+    /////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////
+
+    NetworkPacket _packetize_discovery( const NetworkPacket::device_information& );
+
+    inline static NetSM _sm;
 };
 
 template class NetworkLayer<NullType>;

@@ -80,9 +80,6 @@ struct DatalinkPacket::device_information : public base_device_information
 
   bool mac_exists( std::string mac );
 
-  std::pair<size_t, unsigned char *>
-  get_extra() const;
-
   bool has_state_changed(){
     bool sc = _state_chg;
     _state_chg = false;

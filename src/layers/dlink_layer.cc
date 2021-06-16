@@ -183,7 +183,7 @@ DatalinkPacket DatalinkLayer<InputType>::_packetize_discovery( const DatalinkPac
    
   //add the upstream data
   auto [byte_size, ptr] =  in.get_extra();
-  dp.append_ctrl_data(sizeof(decltype(byte_size) ), (unsigned char *) &byte_size);
+  dp.append_ctrl_data(sizeof(decltype(byte_size) ), (const unsigned char *) &byte_size);
   dp.append_data(byte_size, ptr);
 
   return dp;

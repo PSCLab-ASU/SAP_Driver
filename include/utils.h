@@ -47,6 +47,17 @@ struct base_device_information
     _descs[param] = val;
   }
 
+  std::pair<size_t, const unsigned char *>
+  get_extra() const
+  {
+    return std::make_pair( _extra.size(), _extra.data() );
+  }
+
+  void set_extra(size_t nbyte, unsigned char * data)
+  {
+    for(size_t i=0; i < nbyte; i++) _extra.push_back( data[i] );
+  }
+
   std::vector<unsigned char> serialize_desc() const;
 
   void activate()   { _active = true; }
@@ -58,4 +69,5 @@ struct base_device_information
 
   bool _active;
   std::map<accel_desc_param, uint> _descs;
+  std::vector<unsigned char> _extra;
 };

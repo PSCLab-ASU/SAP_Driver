@@ -1,12 +1,5 @@
 #include "include/layers/net_layer.h"
 
-NetworkPacket::NetworkPacket( typename BasePacket::type base )
-: BasePacket ( base )
-{
-
-
-}
-
 template<typename InputType>
 NetworkLayer<InputType>::NetworkLayer()
 {
@@ -23,6 +16,7 @@ NetworkLayer<InputType>::NetworkLayer()
   this->template register_cmd<FromPhy>(self, &class_type::_self_us);
   this->template register_cmd<FromApp>(cleanup, &class_type::_cleanup_ds);
   this->template register_cmd<FromPhy>(cleanup, &class_type::_cleanup_us);
+  this->template register_cmd<FromPhy>(discovery, &class_type::_track_device);
 
 }
 
@@ -62,4 +56,17 @@ int NetworkLayer<InputType>::_cleanup_us(NetworkPacket&& in, NetworkPktVec& out 
 
   std::cout << "Calling Network cleanup_us..." << std::endl;
   return 0;
+}
+
+template<typename InputType>
+int NetworkLayer<InputType>::_track_device(NetworkPacket&& in, NetworkPktVec& out )
+{
+  std::cout << "Calling networklayer _track_device..." << std::endl;
+  return 0;
+}
+
+template<typename InputType>
+NetworkPacket NetworkLayer<InputType>::_packetize_discovery( const NetworkPacket::device_information& device  )
+{
+  return NetworkPacket( common_layer_cmds::discovery );
 }

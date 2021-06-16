@@ -10,6 +10,8 @@ struct NetworkPacket : public BasePacket
 {
   using BasePacket::get_base;
 
+  struct device_information;
+
   struct ctrl_intf
   {
     friend class NetworkPacket;
@@ -43,6 +45,47 @@ struct NetworkPacket : public BasePacket
    //restriction interface view
   NetworkPacket( typename BasePacket::type base );
 
+  NetworkPacket( ushort op );
+
+  std::optional<unsigned char * >
+  try_extract_dev_info();
+
+
   enum : unsigned char { var=TransportPacket::END+1, END };
 };
+
+
+struct NetworkPacket::device_information : public base_device_information
+{
+  struct mac_params{
+    bool link_status;
+    uint link_cong;
+    std::string _mac_addr;
+
+    std::string get_mac() const { return _mac_addr; }
+
+    bool operator ==(const mac_params& lhs){
+      return (get_mac() == lhs.get_mac());
+    }
+
+  };
+
+  device_information();
+
+  device_information( const device_information&);
+
+  device_information& operator =(const device_information& );
+ 
+  std::string get_id() const {
+    return _id;
+  }
+
+  static device_information deserialize( unsigned char *);
+
+  std::string _id;
+  
+  std::vector< mac_params > _macs; 
+
+};
+
 

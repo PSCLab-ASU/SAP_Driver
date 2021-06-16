@@ -90,15 +90,6 @@ bool DatalinkPacket::device_information::mac_exists( std::string mac)
   return found;
 }
 
-std::pair<size_t, unsigned char *>
-DatalinkPacket::device_information::get_extra() const
-{
-
-  
-  return {0, nullptr};
-}
-
-
 DatalinkPacket::device_information&
 DatalinkPacket::device_information::operator=(const DatalinkPacket::device_information& rhs )
 {
