@@ -1,12 +1,5 @@
 #include "include/layers/sess_layer.h"
 
-SessionPacket::SessionPacket( typename BasePacket::type base )
-: BasePacket ( base )
-{
-
-
-}
-
 template<typename InputType>
 SessionLayer<InputType>::SessionLayer()
 {
@@ -25,7 +18,7 @@ SessionLayer<InputType>::SessionLayer()
   this->template register_cmd<FromPhy>(self, &class_type::_self_us);
   this->template register_cmd<FromApp>(cleanup, &class_type::_cleanup_ds);
   this->template register_cmd<FromPhy>(cleanup, &class_type::_cleanup_us);
-  //this->template register_cmd<FromPhy>(discovery, &class_type::_track_device);
+  this->template register_cmd<FromPhy>(discovery, &class_type::_track_device);
 
 }
 
@@ -67,10 +60,10 @@ int SessionLayer<InputType>::_cleanup_us(SessionPacket&& in, SessionPktVec& out 
   return 0;
 }
 
-/*template<typename InputType>
+template<typename InputType>
 int SessionLayer<InputType>::_track_device(SessionPacket&& in, SessionPktVec& out )
 {
 
   std::cout << "Calling _track_device..." << std::endl;
   return 0;
-}*/
+}

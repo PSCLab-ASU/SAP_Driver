@@ -11,6 +11,23 @@
 
 struct SessSM
 {
+  using device_info_reg_t = std::vector<SessionPacket::device_information>;
+
+  bool device_exists( const device_info_reg_t::value_type& ) const;
+ 
+  bool exact_match( const device_info_reg_t::value_type& ) const;
+ 
+  SessionPacket::device_information& 
+  get_device_info( const SessionPacket::device_information& dev_info );
+  
+ 
+  void add_device_information( const SessionPacket::device_information& dl_dev_info)
+  {
+    std::lock_guard lk(_devices.first);
+    _devices.second.push_back( dl_dev_info );
+  }
+
+  std::pair<std::mutex, device_info_reg_t> _devices;
 
 };
 
@@ -57,7 +74,9 @@ class SessionLayer : public base_layer<SessionLayer<InputType>, SessionPacket >
 
     int _cleanup_us(SessionPacket&& in, SessionPktVec& out );
 
-    static SessSM _sm;
+    int _track_device(SessionPacket&& in, SessionPktVec& out );
+
+    inline static SessSM _sm;
 };
 
 template class SessionLayer<NullType>;
