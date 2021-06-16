@@ -11,6 +11,23 @@
 
 struct TransSM
 {
+  using device_info_reg_t = std::vector<TransportPacket::device_information>;
+
+  bool device_exists( const device_info_reg_t::value_type& ) const;
+ 
+  bool exact_match( const device_info_reg_t::value_type& ) const;
+ 
+  TransportPacket::device_information& 
+  get_device_info( const TransportPacket::device_information& dev_info );
+  
+ 
+  void add_device_information( const TransportPacket::device_information& dl_dev_info)
+  {
+    std::lock_guard lk(_devices.first);
+    _devices.second.push_back( dl_dev_info );
+  }
+
+  std::pair<std::mutex, device_info_reg_t> _devices;
 
 };
 
@@ -57,7 +74,9 @@ class TransportLayer : public base_layer<TransportLayer<InputType>, TransportPac
 
     int _cleanup_us(TransportPacket&& in, TransportPktVec& out );
 
-    static TransSM _sm;
+    int _track_device(TransportPacket&& in, TransportPktVec& out );
+
+    inline static TransSM _sm;
 };
 
 template class TransportLayer<NullType>;

@@ -89,3 +89,5 @@ struct NetworkPacket::device_information : public base_device_information
 };
 
 
+bool operator==(const NetworkPacket::device_information&,
+                const NetworkPacket::device_information& );

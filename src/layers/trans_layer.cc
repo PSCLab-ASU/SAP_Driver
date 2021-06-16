@@ -1,12 +1,5 @@
 #include "include/layers/trans_layer.h"
 
-TransportPacket::TransportPacket( typename BasePacket::type base )
-: BasePacket ( base )
-{
-
-
-}
-
 template<typename InputType>
 TransportLayer<InputType>::TransportLayer()
 {
@@ -23,6 +16,7 @@ TransportLayer<InputType>::TransportLayer()
   this->template register_cmd<FromPhy>(self, &class_type::_self_us);
   this->template register_cmd<FromApp>(cleanup, &class_type::_cleanup_ds);
   this->template register_cmd<FromPhy>(cleanup, &class_type::_cleanup_us);
+  this->template register_cmd<FromPhy>(discovery, &class_type::_track_device);
 
 }
 
@@ -61,5 +55,13 @@ int TransportLayer<InputType>::_cleanup_us(TransportPacket&& in, TransportPktVec
 {
 
   std::cout << "Calling Transport cleanup_us..." << std::endl;
+  return 0;
+}
+
+template<typename InputType>
+int TransportLayer<InputType>::_track_device(TransportPacket&& in, TransportPktVec& out )
+{
+
+  std::cout << "Calling Transport _track_device..." << std::endl;
   return 0;
 }
