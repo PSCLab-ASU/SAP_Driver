@@ -6,11 +6,13 @@
 #include <type_traits>
 #include <vector>
 #include <iostream>
+#include <functional>
 #include <boost/algorithm/string.hpp>
 
 #pragma once
 
-#define MAX_MTU 1500
+#define MAX_MTU 1516
+#define ETH_H_LEN 16
 
 using namespace std::chrono_literals;
 
@@ -27,11 +29,12 @@ namespace common_layer_cmds {
   enum : unsigned char {noop=0, discovery, self, cleanup, command1, command2, command3, END }; 
 }
 
-const std::string g_accelerator_type = { (char) 0x80, (char) 0xAB, (char) 0 };
+const unsigned int g_accelerator_type = 0xab80;
 
 using uchar = unsigned char;
 
-enum accel_desc_param { HW_ID=0, 
+
+enum accel_desc_param { HW_VID=0, 
                         HW_PID, 
                         HW_SS_VID, 
                         HW_SS_PID, 
@@ -39,11 +42,25 @@ enum accel_desc_param { HW_ID=0,
                         SW_PID, 
                         SW_CLID, SW_FID, SW_VERID, ACCEL_ID_END };
 
+using accel_descriptor = std::map<accel_desc_param, uint>;
+
+template<typename T>
+struct equal_to
+{
+  equal_to(T eq_val) : val(eq_val){}
+
+  bool operator()(T comp_val) 
+  {
+    return (val == comp_val);
+  }
+
+  T val;
+};
 
 struct base_device_information
 {
  
-  void set_param( accel_desc_param param, int val){
+  void set_param( accel_desc_param param, uint val){
     _descs[param] = val;
   }
 
@@ -63,11 +80,27 @@ struct base_device_information
   void activate()   { _active = true; }
   void deactivate() { _active = false; }
 
-  bool is_active(){
+  bool is_active() const {
    return _active;
   }
 
+  const accel_descriptor&
+  get_desc() const { return _descs; }
+
+  void set_desc( const accel_descriptor& descs )
+  {
+    _descs = descs;
+  }
+
+  void update_desc( const accel_descriptor& descs )
+  {
+    for(auto& [key, val] : descs )
+    {
+      _descs[key] = val; 
+    }
+  }
+
   bool _active;
-  std::map<accel_desc_param, uint> _descs;
+  accel_descriptor _descs;
   std::vector<unsigned char> _extra;
 };

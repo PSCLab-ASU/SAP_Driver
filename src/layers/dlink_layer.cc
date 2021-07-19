@@ -1,6 +1,7 @@
 #include "include/layers/dlink_layer.h"
 #include "include/layers/phy_layer.h"
 #include "include/layers/packets/dlink_packet.h"
+#include "include/layers/packets/net_packet.h"
 
 template<typename InputType>
 DatalinkLayer<InputType>::DatalinkLayer()
@@ -41,7 +42,7 @@ int DatalinkLayer<InputType>::_self_ds(DatalinkPacket&& in, DatalinkPktVec& out 
   //if( (get_hb_count() % _lldp_interval) == 0 ) 
 
   //this function checks all the device timers and invalidate if necessary
-  _check_invalidate( out );
+  //_check_invalidate( out );
 
   return 0;
 }
@@ -82,45 +83,37 @@ int DatalinkLayer<InputType>::_set_mac_addr(DatalinkPacket&& in, DatalinkPktVec&
 template<typename InputType>
 int DatalinkLayer<InputType>::_track_device(DatalinkPacket&& in, DatalinkPktVec& out )
 {
-  std::cout << "Calling track_device..." << std::endl;
-
-  auto raw_dev_info = in.try_extract_dev_info();
-
-  if( raw_dev_info )
-  {
-    auto dev_info = DatalinkPacket::device_information::deserialize( raw_dev_info.value() );
-
-    if( !_sm.device_exists( dev_info ) )
-    {
-      dev_info.stamp_time();
-      dev_info.set_timeout(_device_timeout);
-
-      _sm.add_device_information( std::move(dev_info) );
-
-      //send it upstream
-      auto res = _packetize_discovery( dev_info );
-      out.push_back(res);
-    }
-    else
-    {
-      //only checks for mac address
-      auto& reged_dev = _sm.get_device_info( dev_info );
-      bool em         = _sm.exact_match( dev_info );
-      bool was_active = reged_dev.is_active();
-
-      reged_dev.stamp_time();
-      reged_dev.activate();
-
-      //updated device_information with latest
-      //discovery parameters
-      if( !em ) reged_dev = dev_info;
-     
-      auto res = _packetize_discovery( reged_dev );
-      out.push_back(res);
-
-    }
+  std::cout << "Calling dlink track_device..." << std::endl;
+  std::string src_mac;
+  bool dev_accessible =false;
+ 
+  //will already be timestamped! 
+  auto dev_info = DatalinkPacket::device_information::deserialize( in, src_mac );
+  
+  if( !_sm.device_exists( dev_info, dev_accessible ) ){
+    dev_info.set_timeout(_device_timeout);
+    _sm.add_device_information( std::move(dev_info) );
+    //use the last device on the list
+    //send desc, src_mac, timout val
+    _upstream_dev_info( in, out );
   }
-  else{ std::cout << "No Device information in packet" << std::endl; }
+  else{
+    auto dev_update = _sm.update_device_status(
+                          in.get_intf_id(), 
+                          src_mac, true, 
+                          dev_info.get_desc() );
+
+    //update desc & use src_mac as a key
+    //new_timeout
+    auto o_dev_upt = std::optional( dev_update );
+    _upstream_dev_info(in, out, o_dev_upt );
+  }
+
+  //send keep alive
+  _upstream_dev_info(in, out, std::optional(src_mac) );
+   
+  //TBD: increment payload offsets and pass it up
+  //out.push_back( DatalinkPacket{} );
 
   return 0;
 }
@@ -128,21 +121,70 @@ int DatalinkLayer<InputType>::_track_device(DatalinkPacket&& in, DatalinkPktVec&
 //////////////////////////////////........internal........////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////
 
+template<typename InputType> template<typename DevUpdate>
+void DatalinkLayer<InputType>::_upstream_dev_info( DatalinkPacket& prev, DatalinkPktVec& out, std::optional<DevUpdate> o_dev_update )
+{
+  const unsigned char mac_size  = 0x06;
+  unsigned char n_macs          = 0x01;
+  DatalinkPacket dp;
+
+  if constexpr( std::is_same_v<DevUpdate, std::string> )
+  {
+    printf("DL3 KEEPALIVE\n");
+    dp.set_op( NetworkPacket::keep_alive );
+    //TLV 0 : MACS //
+    dp.append_ctrl_data( (unsigned char) mac_size);
+    dp.append_ctrl_data( (unsigned char)1 );
+    dp.append_data( o_dev_update->size(), (const unsigned char *) o_dev_update->c_str() );
+    //this function will merge the extra data from the previous layer
+    //this data gets the efficiency numbers
+    dp.fuse_extra( prev.get_base() ); //should have desc, port cong, device cong
+    out.push_back(dp);
+  }
+  else 
+  {
+    printf("DL3 DISCOVERY\n");
+    DatalinkPacket::device_information * dev_ptr = nullptr; 
+    dp.set_op( common_layer_cmds::discovery );
+
+    if constexpr( std::is_same_v<DevUpdate, NullType> ){
+      dev_ptr = &_sm.get_last_dev_info();
+    }
+    else{
+      dev_ptr = &o_dev_update.value();     
+    }
+    //get the last device on the lisr
+    //auto serial_desc = dev_ptr->serialize_desc();
+    auto serial_macs = dev_ptr->serialize_macs();
+    /////////////////////////////////////////////
+    //dp.append_ctrl_data( serial_desc.size() );
+    //dp.append_ctrl_data( 1 );
+    dp.append_ctrl_data( (unsigned char) mac_size);
+    dp.append_ctrl_data( (unsigned char) dev_ptr->get_nmacs() );
+    //dp.append_data( serial_desc.size(), (const unsigned char *) serial_desc.data() );
+    printf("DL3 DISCOVERY mac_size : %i\n", serial_macs.size() );
+    dp.append_data( serial_macs.size(), (const unsigned char *) serial_macs.c_str() );
+    //this function will merge the extra data from the previous layer
+    //this data gets the efficiency numbers
+    //dp.fuse_extra( prev.get_base() );
+    out.push_back(dp);
+    
+  }
+}
+
 template<typename InputType>
 void DatalinkLayer<InputType>::_check_invalidate( DatalinkPktVec& out )
 {
-  auto is_changed = std::mem_fn(&DatalinkPacket::device_information::has_state_changed);
+  auto device_update = std::mem_fn(&DatalinkPacket::device_information::assess_expiration);
 
-  auto flow = _sm._devices.second | std::views::filter( is_changed );
+  auto flow = _sm._devices | std::views::filter( device_update );
 
-  std::lock_guard lk( _sm._devices.first );
-
-  std::ranges::for_each(_sm._devices.second, std::identity{}, 
-                        &DatalinkPacket::device_information::update_still_alive);
+  std::lock_guard lk( _sm._dev_mu );
 
   for(auto& cand_dev : flow ) {
-    auto res = _packetize_discovery( cand_dev );
-    out.push_back(res);
+    auto exp_macs = cand_dev.get_recently_exp_macs();
+    auto dp_out   = _gen_exp_mac_req( std::move(exp_macs) );
+    out.push_back(dp_out);
   }
                        
 }
@@ -159,33 +201,10 @@ DatalinkPacket DatalinkLayer<InputType>::_req_mac_address( )
   return PhyPacket( PhyPacket::get_mac ).get_base();
 }
 
+
 template<typename InputType>
-DatalinkPacket DatalinkLayer<InputType>::_packetize_discovery( const DatalinkPacket::device_information& in )
+DatalinkPacket DatalinkLayer<InputType>::_gen_exp_mac_req(std::vector<std::string>&& exp_macs )
 {
-  DatalinkPacket dp( common_layer_cmds::discovery );
-  const unsigned char len = (const uchar) in._macs.size();
-  const unsigned char zeros[2] = {0x00, 0x00};
- 
-  //append the number of interfaces
-  dp.append_ctrl_data(1, &len);
-  auto desc = in.serialize_desc();
-
-  std::ranges::for_each( in._macs, [&](auto link)
-  {
-    const unsigned char is_active = (const uchar) link.first;
-
-    dp.append_ctrl_data(1, &is_active);
-    dp.append_data(desc.size(), desc.data() );
-    dp.append_data(2, zeros );
-    dp.append_data(6, (const unsigned char *) link.second.c_str() );
-
-  } );
-   
-  //add the upstream data
-  auto [byte_size, ptr] =  in.get_extra();
-  dp.append_ctrl_data(sizeof(decltype(byte_size) ), (const unsigned char *) &byte_size);
-  dp.append_data(byte_size, ptr);
-
-  return dp;
+  //TBD
+  return DatalinkPacket();
 }
-

@@ -45,22 +45,19 @@ struct NetworkPacket : public BasePacket
    //restriction interface view
   NetworkPacket( typename BasePacket::type base );
 
-  NetworkPacket( ushort op );
+  NetworkPacket( ushort op=common_layer_cmds::noop );
 
-  std::optional<unsigned char * >
-  try_extract_dev_info();
-
-
-  enum : unsigned char { var=TransportPacket::END+1, END };
+  enum : unsigned char { var=TransportPacket::END+1, keep_alive, END };
 };
 
 
 struct NetworkPacket::device_information : public base_device_information
 {
   struct mac_params{
-    bool link_status;
-    uint link_cong;
+    bool link_status=false;
+    uint link_cong=0;
     std::string _mac_addr;
+    mac_params( std::string mac ) : _mac_addr( mac) {}
 
     std::string get_mac() const { return _mac_addr; }
 
@@ -70,17 +67,28 @@ struct NetworkPacket::device_information : public base_device_information
 
   };
 
-  device_information();
+  device_information( );
 
   device_information( const device_information&);
 
-  device_information& operator =(const device_information& );
+  device_information( const std::vector<std::string>& );
+
+  device_information& update(const device_information& );
  
   std::string get_id() const {
     return _id;
   }
+   
+  void set_id( size_t id ) {
+    _id = std::to_string( id );
+  }
+ 
+  const std::vector<mac_params>&
+  get_mparms() const { return _macs; } 
 
-  static device_information deserialize( unsigned char *);
+  size_t get_average_congestion () const;
+
+  static device_information deserialize( const NetworkPacket& );
 
   std::string _id;
   

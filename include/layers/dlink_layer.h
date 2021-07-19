@@ -1,5 +1,6 @@
-#include <iostream>
+#include <mutex>
 #include <ranges>
+#include <iostream>
 #include "include/utils.h"
 #include "include/layers/base_layer.h"
 #include "include/pipeline_data.h"
@@ -12,22 +13,32 @@ struct DLinkSM
 {
   using device_info_reg_t = std::vector<DatalinkPacket::device_information>;
 
-
-  bool device_exists( const device_info_reg_t::value_type& ) const;
- 
-  bool exact_match( const device_info_reg_t::value_type& ) const;
+  bool device_exists( const device_info_reg_t::value_type&, bool& ) const;
  
   DatalinkPacket::device_information& 
   get_device_info( const DatalinkPacket::device_information& dev_info );
   
+  DatalinkPacket::device_information& 
+  get_device_by_src_mac( std::string );
  
   void add_device_information( const DatalinkPacket::device_information& dl_dev_info)
   {
-    std::lock_guard lk(_devices.first);
-    _devices.second.push_back( dl_dev_info );
+    std::lock_guard lk(_dev_mu);
+    _devices.push_back( dl_dev_info );
+  }
+ 
+  DatalinkPacket::device_information&
+  get_last_dev_info()
+  { 
+    return _devices.at(_devices.size()-1 );
   }
 
-  std::pair<std::mutex, device_info_reg_t> _devices;
+  DatalinkPacket::device_information& 
+  update_device_status( int, std::string, std::optional<bool>,
+                        std::optional<accel_descriptor>  );
+
+  mutable std::mutex _dev_mu;
+  device_info_reg_t  _devices;
 };
 
 
@@ -89,9 +100,12 @@ class DatalinkLayer : public base_layer<DatalinkLayer<InputType>, DatalinkPacket
 
     void _check_invalidate( DatalinkPktVec& out );
 
-    DatalinkPacket _req_mac_address();
+    template<typename DevUpdate=NullType>
+    void _upstream_dev_info( DatalinkPacket& prev, DatalinkPktVec& out, std::optional<DevUpdate> dev_info ={} );
 
-    DatalinkPacket _packetize_discovery( const DatalinkPacket::device_information& );
+    DatalinkPacket _gen_exp_mac_req( std::vector<std::string>&& );
+
+    DatalinkPacket _req_mac_address();
 
     inline static DLinkSM _sm;
 

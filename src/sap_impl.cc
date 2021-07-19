@@ -52,7 +52,9 @@ void SAPLibPImpl::init( std::vector<std::string> intfs )
   
   std::ranges::for_each(intfs, [&](auto intf){
     const unsigned char len = (const uchar) intf.size();
-    p.append_ctrl_data(1,  &len );
+    const unsigned char one = 1;
+    p.append_ctrl_data((unsigned char) 1,  &len );
+    p.append_ctrl_data((unsigned char) 1,  &one );
     p.append_data( intf.size(), (const unsigned char *) intf.c_str() );
   });
 

@@ -12,7 +12,7 @@
 struct socket_data
 
 {
-  socket_data(int , std::string );
+  socket_data(std::string, int , std::string );
 
   void activate();
   void deactivate();
@@ -35,6 +35,7 @@ struct socket_data
   }
   
   int intf_index;
+  std::string intf_name;
   std::string src_mac;
   std::optional<int> _tx_socket_fd;
   std::optional<int> _rx_socket_fd;
@@ -45,9 +46,9 @@ struct socket_data
 struct PhySM
 {
 
-  void add_sock( int intf_idx, std::string src_mac )
+  void add_sock( std::string ifname, int intf_idx, std::string src_mac )
   {
-    _txrx_socks.emplace_back( intf_idx, src_mac );  
+    _txrx_socks.emplace_back(ifname, intf_idx, src_mac );  
   }
 
   std::vector<socket_data> _txrx_socks;

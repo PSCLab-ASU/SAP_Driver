@@ -4,13 +4,13 @@
 #include <cstring>
 #include <sys/types.h>
 #include <ifaddrs.h>
-#include <linux/if_ether.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-//#include <netdb.h>
+#include <sys/ioctl.h>
 #include <linux/if_packet.h>
-#include <linux/if_arp.h>
+#include <net/ethernet.h>
+#include <linux/udp.h>
+#include <net/if.h>
+#include <arpa/inet.h>
 #include <initializer_list>
 #include <iostream>
 #include "include/layers/phy_layer.h"
@@ -68,7 +68,6 @@ int PhyLayer<InputType>::_self_ds(PhyPacket&& in, PhyPktVec& out )
 template<typename InputType>
 int PhyLayer<InputType>::_self_us(PhyPacket&& in, PhyPktVec& out )
 {
- 
   sockaddr_ll from;
   socklen_t addrlen;
 
@@ -79,33 +78,53 @@ int PhyLayer<InputType>::_self_us(PhyPacket&& in, PhyPktVec& out )
 
   for( auto active_intf : active_intfs )
   {
-
-    PhyPacket p( common_layer_cmds::noop );    
-    p.set_intf_id( active_intf.get_id() );
-
-    auto bytes = recvfrom(active_intf.get_rx_socket(), data, 
-                          MAX_MTU, MSG_DONTWAIT | MSG_PEEK, (sockaddr *) &from, &addrlen); 
+    std::cout << "Reading from " << active_intf.intf_name <<
+              "(" << active_intf.get_rx_socket() << ")" <<  std::endl;
+    auto bytes = recv(active_intf.get_rx_socket(), data, 
+                      MAX_MTU, MSG_DONTWAIT ); 
 
     if( bytes > 0 )
     {
-      std::string src_mac =   { (char) from.sll_addr[0], (char) from.sll_addr[1],
-                                (char) from.sll_addr[2], (char) from.sll_addr[3], 
-                                (char) from.sll_addr[4], (char) from.sll_addr[5], (char) 0 };
+      ether_header * eh   = (ether_header *) data;
 
-      std::string type =  { (char) from.sll_addr[6], (char) from.sll_addr[7], (char) 0 };
+      auto src_mac = std::string((const char*) eh->ether_shost,  6);
+      auto dst_mac = std::string((const char*) eh->ether_dhost,  6);
 
-      if( type == g_accelerator_type )
+      printf("ether_type = %04x, dst = %02x:%02x:%02x:%02x:%02x:%02x\n", eh->ether_type,
+             dst_mac[0], dst_mac[1], dst_mac[2], dst_mac[3], dst_mac[4], dst_mac[5] );
+
+      if( eh->ether_type == g_accelerator_type )
       {
-        p.allocate_data( bytes );
-        p.set_op( (ushort) data[0] );
-        p.set_src( src_mac );
-   
-        auto new_bytes = recv(active_intf.get_rx_socket(), p.get_data().data(), MAX_MTU, MSG_DONTWAIT ); 
+        printf(" FOUND SAP Packet : src %02x:%02x:%02x:%02x:%02x:%02x!!!\n",
+               eh->ether_shost[0],eh->ether_shost[1],eh->ether_shost[2],
+               eh->ether_shost[3],eh->ether_shost[4],eh->ether_shost[5]);
 
+        PhyPacket p; 
+   
+        p.set_intf_id( active_intf.get_id() );
+        p.allocate_data( bytes );
+
+        p.set_src( src_mac );   
+        p.set_offsets(0, ETH_H_LEN-1);
+
+        auto& vec = p.get_data<false>();
+
+        for(int i=0; i < bytes; i++)
+        {
+          vec[i] = (0xFF & data[i]); 
+          //printf("%i:%02x:%02x\t", i, vec[i], data[i] );
+          //if( (i%12) == 0) printf("\n");
+        }
+   
+        p.parse_ctrl();
+ 
+        if( p.get_op() == 1 ) p.set_op( common_layer_cmds::discovery );
+        
         out.push_back( p );
       }
       else{
-        std::cout << "Not a SAP packet...." << std::endl;
+        std::cout << "Not a SAP packet.... : " << eh->ether_type << std::endl;
+        bytes = recv(active_intf.get_rx_socket(), data, MAX_MTU, MSG_DONTWAIT ); 
       }
     }
 
@@ -149,40 +168,30 @@ int PhyLayer<InputType>::_get_mac(PhyPacket&& in, PhyPktVec& out )
 template<typename InputType>
 int PhyLayer<InputType>::_set_intfs(PhyPacket&& in, PhyPktVec& out )
 {
+  printf("PHY2 entering _set_intfs \n");
   std::vector<std::string> intfs;
-  size_t offset = 0;
-  auto lens = in.get_ctrl_data();
-  auto data_sz = in.get_data().size();
+  auto[intf_sz, n_intfs, intf_ptr] = in.get_tlv(0);
 
-  std::string data = std::string( ( (char *) in.get_data().data() ) );
+  std::string intf_name = std::string( (char *) intf_ptr, intf_sz);
+  printf("PHY2 _set_intfs : intf_sz = %i, n_intfs = %i, name =%s \n", intf_sz, n_intfs, intf_name.c_str() ); 
 
-  if( (data_sz > 0) && ( lens.size() > 0 ) )
+  intfs.push_back(intf_name);
+
+  if( (intf_sz > 0) && ( n_intfs > 0 ) )
   {
-    std::ranges::transform( lens, std::back_inserter(intfs), [&]( auto len )
-    {
-      std::string intf = data.substr(offset, len);
-      offset += len;    
-      return intf;
-    } );
-
     //TBD COnfigure sockets
     bool can_configure = _configure_interfaces( intfs );
 
-    if ( can_configure )
-    {
+    if ( can_configure ){
       _activate_intfs(); 
     }
-    else
-    {
+    else{
       std::cout << "**************************************" << std::endl;
       std::cout << "Could not configure any interfaces!!" << std::endl;
       std::cout << "**************************************" << std::endl;
     }
-
-
   }
-  else
-  {
+  else{
     std::cout << "**************************************" << std::endl;
     std::cout << "PHY Set Intf: No Interfaces available!" << std::endl;
     std::cout << "**************************************" << std::endl;
@@ -217,6 +226,8 @@ bool PhyLayer<InputType>::_configure_interfaces( std::vector<std::string> intfs 
 {
   ifaddrs * pifap = nullptr;
   auto initial_ptr = pifap;
+  bool found_atleast_one = false;
+  std::vector<std::string> found_intfs;
 
   int res = getifaddrs( &pifap );
 
@@ -229,15 +240,21 @@ bool PhyLayer<InputType>::_configure_interfaces( std::vector<std::string> intfs 
       return intf == std::string( pifap->ifa_name );
     }); 
   
-    if( match)
+    //auto already_conf = std::ranges::find(found_intfs, std::string(pifap->ifa_name) );
+    bool already_conf = std::ranges::find(found_intfs, pifap->ifa_name ) != std::end(found_intfs);
+    if( match && !already_conf )
     {
+      auto ifname = std::string(pifap->ifa_name);
+      found_intfs.push_back(ifname);
+      std::cout << "Configuring interface : "<< ifname << std::endl;
       std::string src;
       struct sockaddr_ll *s = (struct sockaddr_ll*)pifap->ifa_addr;
 
       //pull mac address
       for(int i = 0; i < 6; i++) src.push_back( s->sll_addr[i] );
 
-      _sm.add_sock( ((sockaddr_ll *)pifap->ifa_addr)->sll_ifindex, src); 
+      _sm.add_sock(ifname, ((sockaddr_ll *)pifap->ifa_addr)->sll_ifindex, src); 
+      found_atleast_one = true;
     }
 
     pifap = pifap->ifa_next;
@@ -250,7 +267,7 @@ bool PhyLayer<InputType>::_configure_interfaces( std::vector<std::string> intfs 
   //deallocate pointer
   freeifaddrs( initial_ptr );
 
-  return false;
+  return found_atleast_one;
 }
 
 
@@ -268,23 +285,24 @@ void PhyLayer<InputType>::_activate_intfs ( )
 /////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-socket_data::socket_data(int intf_idx, std::string src_mac_addr )
+socket_data::socket_data(std::string ifname, int intf_idx, std::string src_mac_addr )
 {
+    intf_name  = ifname;
     intf_index = intf_idx;
     src_mac = src_mac_addr;   
     /*prepare sockaddr_ll*/
     /*RAW communication*/
-    socket_addr.sll_family = PF_PACKET;	
+    socket_addr.sll_family = AF_PACKET;	
     /*we don't use a protocoll above ethernet layer
  *      *   ->just use anything here*/
-    socket_addr.sll_protocol = htons(ETH_P_IP);	
+    socket_addr.sll_protocol = htons(ETH_P_ALL);	
 
     /*index of the network device
  *      * see full code later how to retrieve it*/
     socket_addr.sll_ifindex  = intf_idx;
 
     /*ARP hardware identifier is ethernet*/
-    socket_addr.sll_hatype   = ARPHRD_ETHER;
+    //socket_addr.sll_hatype   = ARPHRD_ETHER;
 	
     /*target is another host*/
     socket_addr.sll_pkttype  = PACKET_OTHERHOST;
@@ -292,8 +310,8 @@ socket_data::socket_data(int intf_idx, std::string src_mac_addr )
     /*address length*/
     socket_addr.sll_halen    = ETH_ALEN;		
     /*MAC - end*/
-    socket_addr.sll_addr[6]  = 0x80;/*not used*/
-    socket_addr.sll_addr[7]  = 0xAB;/*not used*/
+    socket_addr.sll_addr[6]  = 0xAB;/*not used*/
+    socket_addr.sll_addr[7]  = 0x80;/*not used*/
 
 }
 
@@ -313,8 +331,11 @@ void socket_data::activate()
 {
   if ( !_tx_socket_fd )
   {
-    _tx_socket_fd = socket(AF_PACKET, SOCK_RAW | SOCK_NONBLOCK, htons(ETH_P_ALL));
-    if( _tx_socket_fd.value() < 0) 
+    std::cout << "Activating TX for " << intf_name << std::endl;
+    int sockfd = socket(AF_PACKET, SOCK_RAW | SOCK_NONBLOCK, htons(ETH_P_ALL));
+    _tx_socket_fd = sockfd;
+
+    if( sockfd < 0) 
     {
       _tx_socket_fd.reset();
       std::cout << " Could not open transmit socket..." << std::endl;
@@ -323,13 +344,47 @@ void socket_data::activate()
 
   if ( !_rx_socket_fd )
   {
-    _rx_socket_fd = socket(AF_PACKET, SOCK_RAW | SOCK_NONBLOCK, htons(ETH_P_ALL));
-    if( _rx_socket_fd.value() < 0) 
+    std::cout << "Activating RX for " << intf_name << std::endl;
+    int sockfd = socket(AF_PACKET, SOCK_RAW | SOCK_NONBLOCK, htons(ETH_P_ALL));
+    _rx_socket_fd = sockfd;
+    if( sockfd < 0) 
     {
       _rx_socket_fd.reset();
       std::cout << " Could not open recv socket..." << std::endl;
     }
+    else
+    {
+      std::cout << " configuring " << intf_name << "(" << sockfd << ") permiscuous mode! " << std::endl;
+      ifreq ifopts;
+      int sockopt;
+
+      strncpy(ifopts.ifr_name, intf_name.c_str(), intf_name.size() );
+      ioctl(sockfd, SIOCGIFFLAGS, &ifopts);
+      ifopts.ifr_flags |= IFF_PROMISC;
+      ioctl(sockfd, SIOCSIFFLAGS, &ifopts);
+      /* Allow the socket to be reused - incase connection is closed prematurely */
+      if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof sockopt) == -1) {
+        std::cout << " Error reusing socket to " << intf_name << std::endl;
+        _rx_socket_fd.reset();
+      }
+      /* Bind to device */
+      if (setsockopt(sockfd, SOL_SOCKET, SO_BINDTODEVICE, intf_name.c_str(), intf_name.size() ) == -1)
+      {
+        std::cout << " Error Binding socket to " << intf_name << std::endl;
+        _rx_socket_fd.reset();
+      }
+     
+      int broadcast = 1;
+      if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(int) ) == -1)
+      {
+        std::cout << " Error Binding broadcast socket to " << intf_name << std::endl;
+        _rx_socket_fd.reset();
+      }     
+
+    }
+
   }
+
 }
 
 

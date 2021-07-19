@@ -15,45 +15,17 @@ struct DatalinkPacket : public BasePacket
 
   struct device_information;
 
-  struct ctrl_intf
-  {
-    friend class DatalinkPacket;
-
-    public :
-    
-      auto get(){ return _ctrl; }
-
-    private:
-
-      ctrl_intf( const std::vector<uchar>& ctrl )
-      : _ctrl( ctrl ) 
-      {}     
- 
-      ctrl_intf( ){}
-
-      std::vector<uchar> _ctrl;  
-    
-  };
-
-  std::optional<unsigned char * > 
-  try_extract_dev_info();
-
-  ctrl_intf get_ctrl()
-  {
-    return ctrl_intf( get_ctrl() );
-  }
-
-  static ctrl_intf create_ctrl( )
-  {
-    return ctrl_intf();
-  }
-
-  DatalinkPacket( );
-
-  DatalinkPacket(ushort op );
+  DatalinkPacket(ushort op = common_layer_cmds::noop );
 
    //restriction interface view
   DatalinkPacket( typename BasePacket::type base );
+
+  //get the interface this packet came from
+  //std::string get_intf_name() const;
+  //this method extracts the mac address from the sending port
+  //std::string get_src_mac() const;
+  //this methods extracts the macs associated with the sending port
+  std::vector<std::string> get_aux_macs() const;
 
   enum : unsigned char { set_mac=NetworkPacket::END+1, END };
 };
@@ -61,40 +33,52 @@ struct DatalinkPacket : public BasePacket
 struct DatalinkPacket::device_information : public base_device_information
 {
 
+  struct mac_params{
+    bool link_status;
+    volatile bool last_link_status;
+    std::string intf_name;
+    std::string src_mac;
+    std::chrono::time_point<std::chrono::system_clock> _timestamp;
+    mac_params( bool lstat, std::string intf, std::string mac )
+    { link_status=lstat; intf_name=intf; src_mac=mac; }
+    /////////////////////////funcs/////////////////////////////////////////
+    void set_keepalive() { _timestamp = std::chrono::system_clock::now(); }
+    auto get_keepalive() { return _timestamp; }
+    void expired(){ last_link_status = link_status; link_status = false; }
+    void renew(){ last_link_status = link_status; link_status = true; }
+  };
+
+
   device_information( );
+
+  device_information(accel_descriptor, std::string, std::string, std::vector<std::string>, bool );
 
   device_information( const device_information& );
 
   device_information& operator =(const device_information& rhs );
 
-  static device_information deserialize( unsigned char * );
+  static device_information deserialize( DatalinkPacket&, std::string&, bool adv_tlv=true );
  
-  //sets timestamp to right now 
-  void stamp_time();
-
   //sets the delta time before device is lost
   void set_timeout( ulong );
 
   //update the device on whether it is active or lost
-  bool update_still_alive();
+  bool assess_expiration( );
 
-  bool mac_exists( std::string mac );
+  //get recently expired macs since last call to get_recently_exp_macs
+  std::vector<std::string> get_recently_exp_macs();
 
-  bool has_state_changed(){
-    bool sc = _state_chg;
-    _state_chg = false;
+  void update_link_status( int, std::string, bool );
 
-    return sc;
+  bool mac_exists( std::string mac ) const;
+
+  std::string serialize_macs() const;
+
+  size_t get_nports() const
+  {
+    return _macs.size(); 
   }
-
-  void state_has_changed(){
-    _state_chg = true;
-  }
-
-  void state_hasnt_changed(){
-    _state_chg = false;
-  }
-
+ 
   void lock(){
     _mu.lock();
   }
@@ -102,15 +86,24 @@ struct DatalinkPacket::device_information : public base_device_information
   void unlock(){
     _mu.unlock();
   }
+
+  bool is_device_accessible() const
+  {
+    return _still_alive;
+  } 
+
+  ulong get_timeout() const { return _timeout; }
  
+  const std::vector<mac_params> & get_macs() const { return _macs; }
+  size_t get_nmacs() const { return _macs.size(); }
+
+  
+
   std::mutex _mu; 
+  bool _partial_info;
+  bool _still_alive;
   ulong _timeout;
-  bool _state_chg;
-  std::vector< std::pair<bool, std::string> > _macs;
-  std::chrono::time_point<std::chrono::system_clock> _timestamp;
+  std::vector< mac_params > _macs;
   
 };
-
-bool operator==(const DatalinkPacket::device_information&,
-                const DatalinkPacket::device_information& );
 

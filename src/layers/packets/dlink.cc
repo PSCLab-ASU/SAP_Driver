@@ -19,18 +19,32 @@ DatalinkPacket::DatalinkPacket( ushort op )
   set_op( op );
 }
 
-std::optional<unsigned char * >
-DatalinkPacket::try_extract_dev_info()
-{
-
-  return {};
-}
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////.............device information methods..........//////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 DatalinkPacket::device_information::device_information(){}
+
+DatalinkPacket::device_information::device_information(accel_descriptor, 
+                                                       std::string intf_name, 
+                                                       std::string src_mac, 
+                                                       std::vector<std::string> aux_macs,
+                                                       bool partial_device_info = true)
+{
+  _partial_info = partial_device_info;
+
+  std::ranges::transform(aux_macs, std::back_inserter(_macs),  [&]( auto aux_mac ) 
+  {
+    bool this_link   = (aux_mac == src_mac);
+    std::string intf = this_link?intf_name:"";
+    
+    mac_params mcp( this_link, intf, aux_mac);
+    if(this_link) mcp.set_keepalive();
+
+    return mcp;
+  } );
+
+}
 
 DatalinkPacket::device_information::device_information( const DatalinkPacket::device_information& rhs)
 {
@@ -38,14 +52,85 @@ DatalinkPacket::device_information::device_information( const DatalinkPacket::de
 }
 
 DatalinkPacket::device_information 
-DatalinkPacket::device_information::deserialize( unsigned char * raw_data )
+DatalinkPacket::device_information::deserialize( DatalinkPacket& dp, std::string& src_mac, bool adv_tlv )
 {
-  return device_information{};
+  std::vector<std::string> aux_macs;
+  auto intf_name   = std::to_string(dp.get_intf_id() );
+  auto _src_mac    = dp.get_src();
+  accel_descriptor desc; 
+
+  src_mac = _src_mac;
+ 
+  printf("FOUND_SRC : %02x:%02x:%02x:%02x:%02x:%02x \n",
+          ( 0xFF & _src_mac.c_str()[0]),
+          ( 0xFF & _src_mac.c_str()[1]),
+          ( 0xFF & _src_mac.c_str()[2]),
+          ( 0xFF & _src_mac.c_str()[3]),
+          ( 0xFF & _src_mac.c_str()[4]),
+          ( 0xFF & _src_mac.c_str()[5]));
+
+  //TBD: Add Accelerator description vector
+  //6B   n_macs ptr
+  auto ctrl_vec = dp.get_ctrl<false>();
+
+  std::cout << "FOUND_CTRL : ";
+  std::ranges::copy(ctrl_vec, std::ostream_iterator<unsigned int>(std::cout, " "));
+  std::cout << '\n';
+
+  auto[addr_size, n_macs, macs_ptr] = dp.get_tlv(1);
+
+  std::string aux_mac;
+  for(int i=0; i < n_macs; i++)
+  {
+    for(int j=0; j < addr_size; j++)
+      aux_mac.push_back( macs_ptr[j + i*addr_size] );
+
+    aux_macs.push_back( aux_mac );
+
+    aux_mac.clear();
+  }
+  
+  printf("FOUND_MACS  : %i, %i : %02x:%02x:%02x:%02x:%02x:%02x \n", addr_size, n_macs,
+         macs_ptr[0],macs_ptr[1],macs_ptr[2],macs_ptr[3],macs_ptr[4],macs_ptr[5] );
+  printf("FOUND_MACS2 : %i, %i : %02x:%02x:%02x:%02x:%02x:%02x \n", addr_size, n_macs,
+         macs_ptr[6],macs_ptr[7],macs_ptr[8],macs_ptr[9],macs_ptr[10],macs_ptr[11] );
+ 
+  auto[id_size, n_id, id_data_begin] = dp.get_tlv(2); 
+ 
+  auto id_ptr = (const unsigned short *) id_data_begin; 
+  printf("FOUND_IDS : %i, %i : %04x:%04x:%04x:%04x:%04x\n", 
+         id_size, n_id, id_ptr[0], id_ptr[1], id_ptr[2], id_ptr[3], id_ptr[4] );
+  
+  //FILL mac addresses
+  desc[HW_VID]    = id_ptr[0];
+  desc[HW_PID]    = id_ptr[1];
+  desc[HW_SS_VID] = id_ptr[3];
+  desc[HW_SS_PID] = id_ptr[4];
+  desc[SW_VID]    = id_ptr[0];
+  desc[SW_PID]    = id_ptr[1];
+  desc[SW_CLID]   = id_ptr[2];
+  desc[SW_FID]    = id_ptr[3];
+  desc[SW_VERID]  = id_ptr[4];
+
+  auto dev_info = device_information(desc, intf_name, src_mac, aux_macs);
+  //advancing ctrl and data offsets
+  if(adv_tlv) dp.advance_tlv(3);
+
+  return dev_info;
+
 }
 
-void DatalinkPacket::device_information::stamp_time( )
+std::string
+DatalinkPacket::device_information::serialize_macs() const
 {
-  _timestamp = std::chrono::system_clock::now();
+  std::string out;
+
+  std::ranges::for_each(_macs, [&](auto src_mac){
+    out += src_mac;
+
+  }, &mac_params::src_mac);
+
+  return out;
 }
 
 void DatalinkPacket::device_information::set_timeout( ulong timeout )
@@ -54,127 +139,181 @@ void DatalinkPacket::device_information::set_timeout( ulong timeout )
 }
 
 
-bool DatalinkPacket::device_information::update_still_alive( )
+bool DatalinkPacket::device_information::assess_expiration()
 {
+  bool any_port_expired = false;
   auto mark = std::chrono::system_clock::now();
-  auto elapsed_time = (mark - _timestamp );
-  auto seconds_elapsed = std::chrono::duration_cast<std::chrono::seconds>(elapsed_time);
 
-  auto is_device_active = is_active();
-
-  if ( seconds_elapsed.count() > _timeout ) 
+  std::ranges::for_each(_macs, [&](auto mac)
   {
-    if( !is_device_active ) state_has_changed();
-    else state_hasnt_changed();
+    auto elapsed_time = (mark - mac.get_keepalive() );
+    auto seconds_elapsed = std::chrono::duration_cast<std::chrono::seconds>(elapsed_time).count();
+    //only true if time elapsed and the link was up
+    if( (seconds_elapsed > _timeout) && mac.link_status )
+    {
+      mac.expired();
+      any_port_expired |= true;
+    }
 
-    activate();
-  }
-  else 
-  {
+  });
 
-    if( is_device_active ) state_has_changed();
-    else state_hasnt_changed();
+  //if all ports are dead the device is down
+  _still_alive = std::ranges::any_of(_macs, std::mem_fn(&mac_params::link_status) );
 
-    deactivate();
-  }
-  return true; 
+  return any_port_expired; 
  
 }
-bool DatalinkPacket::device_information::mac_exists( std::string mac)
+
+
+std::vector<std::string>
+DatalinkPacket::device_information::get_recently_exp_macs()
 {
-  bool found = std::ranges::any_of(_macs, [&](auto cand_mac)
+  std::vector<std::string> out;
+  std::ranges::for_each(_macs, [&](auto mac)
   {
-    return mac == cand_mac.second;
+    if ( !mac.link_status && mac.last_link_status )
+      out.push_back( mac.src_mac );
+
+    mac.last_link_status = mac.link_status;   
+    
   } );
- 
-  return found;
+
+  return out;
 }
+
+bool DatalinkPacket::device_information::mac_exists( std::string mac) const
+{
+  bool exists = std::ranges::any_of(_macs, equal_to{mac}, &mac_params::src_mac);
+  printf("DL_SM ME: %02x:%02x:%02x:%02x:%02x:%02x\n", 
+         mac[0], mac[1], mac[2],
+         mac[3], mac[4], mac[5] );
+
+  for(auto cmac : _macs )
+    printf("DL_SM ME2: %02x:%02x:%02x:%02x:%02x:%02x -> %i\n", 
+           cmac.src_mac[0], cmac.src_mac[1], cmac.src_mac[2],
+           cmac.src_mac[3], cmac.src_mac[4], cmac.src_mac[5], exists );
+
+  return exists;
+}
+
+void DatalinkPacket::device_information::update_link_status(int intf_id, std::string src_mac, bool link_status)
+{
+  auto found_mac = std::ranges::find_if(_macs, equal_to{src_mac}, &mac_params::src_mac);
+
+  found_mac->intf_name = std::to_string( intf_id );
+
+  if( link_status ) found_mac->renew();
+  else found_mac->expired();
+} 
 
 DatalinkPacket::device_information&
 DatalinkPacket::device_information::operator=(const DatalinkPacket::device_information& rhs )
 {
-  _timestamp = rhs._timestamp;
-  _descs = rhs._descs;
-  _active = rhs._active;
-  _timeout = rhs._timeout;
-  _state_chg = rhs._state_chg;
-
-  //append mac address
-  std::ranges::for_each(rhs._macs,[&](auto mac)
-  {
-    if( !mac_exists( mac.second ) ){
-      auto element = 
-        std::make_pair<bool, std::string>( true, std::move(mac.second));
-
-      _macs.insert(_macs.end(), element );
-    }
-    
-  } );
-
+  _still_alive = rhs.is_device_accessible();
+  _timeout     = rhs.get_timeout();
+  _macs        = rhs.get_macs();
+  
   return *this; 
 }
 
-bool operator==( const DatalinkPacket::device_information& lhs,
-                 const DatalinkPacket::device_information& rhs )
-{
-  return (lhs._descs == rhs._descs) && (lhs._macs == rhs._macs );
-
-}
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////.............Shared memory methods..........///////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-bool DLinkSM::device_exists( const DatalinkPacket::device_information& cand_dev) const
+//device exist if there is one 
+bool DLinkSM::device_exists( const DatalinkPacket::device_information& cand_dev, bool& accessible) const
 {
+  bool ret = false;
+  accessible = false;
 
-  //go through every device
-  bool found = std::ranges::any_of( _devices.second, [&](auto device)
+  std::lock_guard lk(_dev_mu);
+
+  printf("DL_SM DEV size : %i \n", _devices.size() );
+  std::ranges::for_each(_devices, [&](auto dev)
   {
-    //go through each mac in the device
-    return std::ranges::any_of(device._macs, [&](auto mac)
+    auto match = std::ranges::all_of(dev.get_macs(),
+    [&](auto mcp)
     {
-      //go through each mac of the device and compare to list
-      return std::ranges::any_of(cand_dev._macs, [&](auto cand_mac)
-      {
-        return mac.second == cand_mac.second;
-
-      } );
-
-    }); 
-
-  });
-
-  return found;
+      printf("DL_SM DE: %02x:%02x:%02x:%02x:%02x:%02x\n", 
+             mcp.src_mac[0], mcp.src_mac[1], mcp.src_mac[2],
+             mcp.src_mac[3], mcp.src_mac[4], mcp.src_mac[5] );
+      return cand_dev.mac_exists(mcp.src_mac);
+    });
+    
+    //must have matching mac lists
+    if( match )
+    {
+      printf("DL_SM DE_FOUND\n");
+      ret = true;
+      accessible = dev.is_device_accessible();
+    } 
+  } );
+  return ret;
 }
 
 DatalinkPacket::device_information& 
 DLinkSM::get_device_info( const DatalinkPacket::device_information& dev_info )
 {
-  //search for just mac
-  auto cand_flow = _devices.second | std::views::filter(
-  [&](auto device )
+  std::lock_guard lk(_dev_mu);
+
+  auto found_dev = std::ranges::find_if( _devices, 
+  [&](auto dev_macs )
   {
-    return std::ranges::all_of( device._macs, [&](auto mac)
+    return std::ranges::all_of(dev_macs,
+    [&](auto mcp)
     {
-      return std::ranges::all_of( dev_info._macs, [&](auto cand_mac)
-      {
-        return mac.second == cand_mac.second;
+      return dev_info.mac_exists(mcp.src_mac);
+    });
 
-      } );
-      
-    } );
-  } ) | std::views::take(1);
-  
-  return *std::ranges::find_if(cand_flow, []( auto ){ return true; } ); 
-  
+  }, &DatalinkPacket::device_information::get_macs );
+
+  if (found_dev == std::end(_devices) )
+    throw std::out_of_range("DL: Device does not exists in device list.");
+
+  return *found_dev;
 }
 
-bool DLinkSM::exact_match(const DatalinkPacket::device_information& cand_dev ) const
+DatalinkPacket::device_information& 
+DLinkSM::get_device_by_src_mac( std::string mac_key )
 {
-  auto deviceIt = std::ranges::find( _devices.second, cand_dev );
+  std::lock_guard lk(_dev_mu);
+  printf("DL_SM : %02x:%02x:%02x:%02x:%02x:%02x\n", 
+         mac_key[0], mac_key[1], mac_key[2],
+         mac_key[3], mac_key[4], mac_key[5] );
 
-  return (deviceIt != std::end(_devices.second) );
+
+  printf("DL_SM devices sizes : %i \n", _devices.size() );
+
+  auto found_dev = 
+  std::ranges::find_if(_devices, [&](auto mcps)
+  {
+    printf("DL_SM mcps_size :%i \n", mcps.size() );
+    for(auto& mcp : mcps)
+      printf("DL_SM CAND: %02x:%02x:%02x:%02x:%02x:%02x\n", 
+             mcp.src_mac[0], mcp.src_mac[1], mcp.src_mac[2],
+             mcp.src_mac[3], mcp.src_mac[4], mcp.src_mac[5] );
+
+    return std::ranges::any_of(mcps, equal_to{ mac_key }, 
+              &DatalinkPacket::device_information::mac_params::src_mac);
+   
+  }, &DatalinkPacket::device_information::get_macs );
+
+  if (found_dev == std::end(_devices) )
+    throw std::out_of_range("DL: Device does not exists in device list.");
+
+  return *found_dev;
 }
 
+DatalinkPacket::device_information&
+DLinkSM::update_device_status(int intf_id, std::string mac_key, 
+                                   std::optional<bool> link_status,
+                                   std::optional<accel_descriptor> desc )
+{
+  auto& dev = get_device_by_src_mac( mac_key );
+
+  if( link_status ) dev.update_link_status(intf_id, mac_key, link_status.value() );
+  if( desc ) dev.set_desc( desc.value() );
+  
+  return dev; 
+}
 
 

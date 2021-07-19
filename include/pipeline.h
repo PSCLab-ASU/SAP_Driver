@@ -36,7 +36,7 @@ struct pipeline_impl
     auto sleepy_hb = std::ranges::views::iota(1) | 
                      std::ranges::views::transform([](int in)
                      {
-                       std::this_thread::sleep_for( 1000ms );
+                       std::this_thread::sleep_for( 100us );
                        return in;
                      } );
 

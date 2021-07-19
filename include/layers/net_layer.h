@@ -27,6 +27,10 @@ struct NetSM
     _devices.second.push_back( dl_dev_info );
   }
 
+  size_t get_num_devices(){
+    return _devices.second.size();
+  }
+
   std::pair<std::mutex, device_info_reg_t> _devices;
 
 };
@@ -76,6 +80,8 @@ class NetworkLayer : public base_layer<NetworkLayer<InputType>, NetworkPacket >
     int _cleanup_us(NetworkPacket&& in, NetworkPktVec& out );
 
     int _track_device(NetworkPacket&& in, NetworkPktVec& out );
+
+    int _keep_alive(NetworkPacket&& in, NetworkPktVec& out );
 
     /////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////
