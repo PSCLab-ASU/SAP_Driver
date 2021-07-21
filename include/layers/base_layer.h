@@ -177,6 +177,14 @@ class base_layer
 
     Derived * _Impl() { return static_cast<Derived*>(this); } 
 
+    template<ushort OP>
+    int pass_through(DataIntf&& in, std::vector<DataIntf>& out)
+    {
+      in.set_op(OP);
+      out.push_back(std::forward<decltype(in)>(in));
+      return 0;
+    }
+
     private :
 
       bool  _inited=false;

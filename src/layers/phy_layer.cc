@@ -105,7 +105,7 @@ int PhyLayer<InputType>::_self_us(PhyPacket&& in, PhyPktVec& out )
         p.allocate_data( bytes );
 
         p.set_src( src_mac );   
-        p.set_offsets(0, ETH_H_LEN-1);
+        p.set_offsets(0, ETH_H_LEN);
 
         auto& vec = p.get_data<false>();
 

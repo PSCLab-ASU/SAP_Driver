@@ -8,6 +8,7 @@
 #include <iostream>
 #include <functional>
 #include <boost/algorithm/string.hpp>
+#include <sstream>
 
 #pragma once
 
@@ -43,6 +44,15 @@ enum accel_desc_param { HW_VID=0,
                         SW_CLID, SW_FID, SW_VERID, ACCEL_ID_END };
 
 using accel_descriptor = std::map<accel_desc_param, uint>;
+
+template<typename T>
+void print_vector( const T& vals)
+{
+  std::ostringstream oss;
+  std::copy(vals.begin(), vals.end(), std::ostream_iterator<typename T::value_type>(oss, ","));
+  printf("CTRL_VEC : %s \n", oss.str().c_str() );
+
+}
 
 template<typename T>
 struct equal_to

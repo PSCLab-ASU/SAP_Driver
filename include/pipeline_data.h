@@ -112,6 +112,11 @@ struct base_pipeline_data
     _ctrl = ctrl;
   }
 
+  void insert_ctrl( ushort pos, unsigned char val)
+  {
+    _ctrl.insert(std::next(_ctrl.begin(), pos), val);
+  }
+
   void append_ctrl( size_t nbytes, const uchar * data )
   {
     auto c_sz= _ctrl.size();
@@ -158,14 +163,14 @@ struct base_pipeline_data
   {
     if( ctrl_offset ){
       printf("set_incr_offset ctrl %zu\n", ctrl_offset.value() );
-      if( incr_offset ) _ctrl_offset += ctrl_offset.value()+1;
-      else _ctrl_offset = ctrl_offset.value()+1;
+      if( incr_offset ) _ctrl_offset += ctrl_offset.value() + 1;
+      else _ctrl_offset = ctrl_offset.value() + 1;
     }
 
     if ( data_offset ){
       printf("set_incr_offset data %zu\n", data_offset.value() );
-      if( incr_offset ) _data_offset += data_offset.value()+1;
-      else _data_offset = data_offset.value()+1;
+      if( incr_offset ) _data_offset += data_offset.value();
+      else _data_offset = data_offset.value();
       printf("end - set_incr_offset data %zu\n", _data_offset );
     }
   }
@@ -192,7 +197,7 @@ struct base_pipeline_data
   {
     auto max_tlv = get_max_tlv(false);
     auto max_recur_tlv = get_max_tlv(true);
-    if( idx < max_tlv){
+    if( idx <= max_tlv){
       size_t byte_offset = 0;
       auto ctrl = get_ctrl_with_offset();
       size_t v_len = ctrl[2*idx]; 
@@ -229,19 +234,18 @@ struct base_pipeline_data
       //calc the total number of bytes to incr
       //the data
       size_t nbytes=0;
-      for(int i=0; i < idx; i++) 
+      for(int i=0; i < idx; i++)
+      {
         nbytes += ctrl[2*i] * ctrl[2*i+1];
+        printf( "NET OFFSET: %i * %i \n", ctrl[2*i], ctrl[2*i+1]); 
+      }
 
+      printf("NET TOFFSET : %i \n", nbytes);
       set_incr_offsets( 2*idx, nbytes);
       
     }
-    else if( idx > max_tlv){
-      _extra_data->advance_tlv( idx - max_tlv );
-      if(!is_complete() ) complete(); 
-    }
-    else{
-      if(!is_complete() ) complete(); 
-    }
+    else
+      std::out_of_range("advanced out of range" + std::to_string(idx) );
     
   }
 
@@ -324,6 +328,11 @@ struct BasePacket
   {
     //_base->append_ctrl(sizeof(T), (const unsigned char *) &ctrl_val);
     _base->append_ctrl(1, (const unsigned char *) &ctrl_val);
+  }
+
+  void insert_ctrl_data( ushort pos, unsigned char val)
+  {
+    _base->insert_ctrl(pos, val);
   }
 
   void append_data( size_t nbytes, const unsigned char * buff)
@@ -411,7 +420,7 @@ struct BasePacket
     {
       
       throw std::out_of_range("DL: get_tlv TLV is out of bounds : idx=" + 
-                               std::to_string(idx) );
+                               std::to_string(idx) + ", max_tlv =" + std::to_string(max_tlvs) );
     }
     //run through control and calculate total offset bytes
     //recurrent operation

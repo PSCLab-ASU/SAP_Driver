@@ -1,4 +1,5 @@
 #include "include/layers/trans_layer.h"
+#include "include/layers/packets/sess_packet.h"
 
 template<typename InputType>
 TransportLayer<InputType>::TransportLayer()
@@ -16,7 +17,8 @@ TransportLayer<InputType>::TransportLayer()
   this->template register_cmd<FromPhy>(self, &class_type::_self_us);
   this->template register_cmd<FromApp>(cleanup, &class_type::_cleanup_ds);
   this->template register_cmd<FromPhy>(cleanup, &class_type::_cleanup_us);
-  this->template register_cmd<FromPhy>(discovery, &class_type::_track_device);
+  this->template register_cmd<FromPhy>(TransportPacket::keep_alive, 
+                                       &class_type::template pass_through<SessionPacket::device_info> );
 
 }
 

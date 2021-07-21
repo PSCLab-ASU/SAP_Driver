@@ -19,6 +19,7 @@ SessionLayer<InputType>::SessionLayer()
   this->template register_cmd<FromApp>(cleanup, &class_type::_cleanup_ds);
   this->template register_cmd<FromPhy>(cleanup, &class_type::_cleanup_us);
   this->template register_cmd<FromPhy>(discovery, &class_type::_track_device);
+  this->template register_cmd<FromPhy>(SessionPacket::device_info, &class_type::_device_info);
 
 }
 
@@ -65,5 +66,13 @@ int SessionLayer<InputType>::_track_device(SessionPacket&& in, SessionPktVec& ou
 {
 
   std::cout << "Calling _track_device..." << std::endl;
+  return 0;
+}
+
+template<typename InputType>
+int SessionLayer<InputType>::_device_info(SessionPacket&& in, SessionPktVec& out )
+{
+
+  std::cout << "Calling Session SESS _device_info..." << std::endl;
   return 0;
 }

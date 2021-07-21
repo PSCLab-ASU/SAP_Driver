@@ -16,10 +16,13 @@ struct NetSM
   bool device_exists( const device_info_reg_t::value_type& ) const;
  
   bool exact_match( const device_info_reg_t::value_type& ) const;
- 
+
   NetworkPacket::device_information& 
   get_device_info( const NetworkPacket::device_information& dev_info );
   
+  NetworkPacket::device_information& 
+  get_device_info( const std::string&, unsigned char& );
+ 
  
   void add_device_information( const NetworkPacket::device_information& dl_dev_info)
   {
@@ -86,8 +89,6 @@ class NetworkLayer : public base_layer<NetworkLayer<InputType>, NetworkPacket >
     /////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////
-
-    NetworkPacket _packetize_discovery( const NetworkPacket::device_information& );
 
     inline static NetSM _sm;
 };

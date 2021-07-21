@@ -74,7 +74,7 @@ struct PhyPacket : public BasePacket
     set_op( data[ctrl_sz] );
     //data[0] is size, and data[ctrl_sz] is the operation
     for(ulong i=1; i < ctrl_sz; i++) ctrl[i] = data[i];
-    set_offsets(0, ctrl_sz-1);
+    set_offsets(0, ctrl_sz);
 
   }
 

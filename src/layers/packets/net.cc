@@ -42,7 +42,7 @@ NetworkPacket::device_information::update(const NetworkPacket::device_informatio
 {
   //only update link status, congestion and mac
   //but mac_addr should be the same
-  _macs[0] = rhs.get_mparms()[0]; 
+  _macs[0] = rhs.get_mparams()[0]; 
   //Update base information
   set_desc ( rhs.get_desc() );
   //update active
@@ -51,17 +51,23 @@ NetworkPacket::device_information::update(const NetworkPacket::device_informatio
   return *this;
 }
 
-size_t NetworkPacket::device_information::get_average_congestion() const
+void NetworkPacket::device_information::set_lcong( std::string mac, ushort lcong)
 {
-  size_t total = std::accumulate(std::begin(get_mparms()),
-                                 std::end( get_mparms() ),
+  auto mparm = std::ranges::find_if(_macs, equal_to{ mac }, &mac_params::get_mac );
+  mparm->link_cong = lcong;
+}
+
+ushort NetworkPacket::device_information::get_avg_congest() const
+{
+  size_t total = std::accumulate(std::begin(get_mparams()),
+                                 std::end( get_mparams() ),
                                  (size_t) 0,
                                  [](size_t sum, auto mparm)
   {
     return sum + mparm.link_cong;
   } );
  
-  auto avg = ( total / get_mparms().size() ) * 100;  
+  auto avg = ( total / get_mparams().size() ) * 100;  
 
   return avg;
                   
@@ -75,17 +81,11 @@ NetworkPacket::device_information::deserialize( const NetworkPacket & np )
   std::vector<std::string> aux_macs;
   auto[mac_sz, n_macs, macs_ptr] = np.get_tlv(0);
  
-  /*printf("NET FOUND_MACS  : %i, %i : %02x:%02x:%02x:%02x:%02x:%02x \n", mac_sz,  n_macs, 
-         macs_ptr[0],macs_ptr[1],macs_ptr[2],macs_ptr[3],macs_ptr[4],macs_ptr[5] );
-
-  printf("NET FOUND_MACS2  : %i, %i : %02x:%02x:%02x:%02x:%02x:%02x \n", mac_sz,  n_macs, 
-         macs_ptr[6],macs_ptr[7],macs_ptr[8],macs_ptr[9],macs_ptr[10],macs_ptr[11] );
-  */
   for( int i=0; i < n_macs; i++  ){
 
     std::string mac = std::string( (char *) &macs_ptr[6*i], 6 );
     printf("NET FOUND_MACS  : %i, %i : %02x:%02x:%02x:%02x:%02x:%02x \n", mac_sz,  n_macs, 
-         mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] );
+         mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] ); 
 
     aux_macs.push_back(mac); 
   }
@@ -98,10 +98,17 @@ NetworkPacket::device_information::deserialize( const NetworkPacket & np )
 bool operator==( const NetworkPacket::device_information& lhs,
                  const NetworkPacket::device_information& rhs )
 {
-  return std::ranges::all_of(lhs.get_mparms(), [&](auto lhs_mparm)
+  return std::ranges::all_of(lhs.get_mparams(), [&](auto lhs_mparm)
   {
-    return std::ranges::any_of(rhs.get_mparms(), [&](auto rhs_mparm)
+    return std::ranges::any_of(rhs.get_mparams(), [&](auto rhs_mparm)
     {
+      auto mac = lhs_mparm.get_mac();
+      auto cand_mac = rhs_mparm.get_mac();
+
+      printf("NET CMP %02x:%02x:%02x:%02x:%02x:%02x == %02x:%02x:%02x:%02x:%02x:%02x \n",
+              mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
+              cand_mac[0], cand_mac[1], cand_mac[2], cand_mac[3], cand_mac[4], cand_mac[5]);
+               
       return lhs_mparm.get_mac() == rhs_mparm.get_mac();
 
     } );
@@ -120,7 +127,7 @@ bool NetSM::device_exists( const NetworkPacket::device_information& cand_dev) co
   return std::ranges::any_of( _devices.second, [&](auto device)
   {
     //go through each mac in the device
-    return std::ranges::any_of(device._macs, [&](auto mac)
+    return std::ranges::all_of(device._macs, [&](auto mac)
     {
       //go through each mac of the device and compare to list
       return std::ranges::any_of(cand_dev._macs, [&](auto cand_mac)
@@ -145,10 +152,40 @@ bool NetSM::exact_match(const NetworkPacket::device_information& cand_dev ) cons
 NetworkPacket::device_information& 
 NetSM::get_device_info( const NetworkPacket::device_information& cand_device )
 { 
-  return *std::ranges::find_if(_devices.second, [&]( auto dev_info )
-  { 
-    return dev_info == cand_device; 
-  } ); 
-  
+  for(auto& dev : _devices.second)
+    if( device_exists(cand_device) )
+      return dev;
+
+  throw std::out_of_range("NET No devices found!");
+
+  return *_devices.second.end();
 }
 
+NetworkPacket::device_information& 
+NetSM::get_device_info( const std::string& src_mac, unsigned char& dev_index )
+{ 
+  dev_index = 0;
+  printf("NET CMP : %02x:%02x:%02x:%02x:%02x:%02x \n",
+         src_mac[0], src_mac[1], src_mac[2], src_mac[3], src_mac[4], src_mac[5] );
+
+  for(auto& dev : _devices.second)
+  {
+    bool exists = std::ranges::any_of( dev.get_mparams(), 
+                                       equal_to{ src_mac },
+                                       &NetworkPacket::device_information::mac_params::get_mac );
+
+    std::ranges::for_each(dev.get_mparams(),
+      [](auto src_mac ){
+        printf("NET CMP2 : %02x:%02x:%02x:%02x:%02x:%02x \n",
+                src_mac[0], src_mac[1], src_mac[2], src_mac[3], src_mac[4], src_mac[5] );
+
+      }, &NetworkPacket::device_information::mac_params::get_mac);
+    
+    if( exists ) return dev;
+    dev_index += 1;
+  }
+  
+  throw std::out_of_range("NET No devices found for src_mac");
+
+  return *_devices.second.end();
+}

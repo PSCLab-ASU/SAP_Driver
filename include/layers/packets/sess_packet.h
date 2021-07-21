@@ -50,7 +50,7 @@ struct SessionPacket : public BasePacket
   std::optional<unsigned char *>
   try_extract_dev_info();
 
-  enum : unsigned char { discovery=PresentationPacket::END+1, END };
+  enum : unsigned char { discovery=PresentationPacket::END+1, device_info, END };
 };
 
 struct SessionPacket::device_information : public base_device_information

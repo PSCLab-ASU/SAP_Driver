@@ -12,35 +12,6 @@ struct NetworkPacket : public BasePacket
 
   struct device_information;
 
-  struct ctrl_intf
-  {
-    friend class NetworkPacket;
-
-    public :
-    
-      auto get(){ return _ctrl; }
-
-    private:
-
-      ctrl_intf( const std::vector<uchar>& ctrl )
-      : _ctrl( ctrl ) 
-      {}     
- 
-      ctrl_intf( ){}
-
-      std::vector<uchar> _ctrl;  
-    
-  };
-
-  ctrl_intf get_ctrl()
-  {
-    return ctrl_intf( get_ctrl() );
-  }
-
-  static ctrl_intf create_ctrl( )
-  {
-    return ctrl_intf();
-  }
 
    //restriction interface view
   NetworkPacket( typename BasePacket::type base );
@@ -82,11 +53,13 @@ struct NetworkPacket::device_information : public base_device_information
   void set_id( size_t id ) {
     _id = std::to_string( id );
   }
+
+  void set_lcong( std::string, ushort link_cong );
  
   const std::vector<mac_params>&
-  get_mparms() const { return _macs; } 
+  get_mparams() const { return _macs; } 
 
-  size_t get_average_congestion () const;
+  ushort get_avg_congest () const;
 
   static device_information deserialize( const NetworkPacket& );
 

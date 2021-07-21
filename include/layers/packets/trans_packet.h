@@ -50,7 +50,7 @@ struct TransportPacket : public BasePacket
   std::optional<unsigned char *>
   try_extract_dev_info();
 
-  enum : unsigned char { var=SessionPacket::END+1, END };
+  enum : unsigned char { var=SessionPacket::END+1, keep_alive, END };
 };
 
 

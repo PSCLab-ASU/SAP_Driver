@@ -35,7 +35,7 @@ template< typename InputType=NullType>
 class TransportLayer : public base_layer<TransportLayer<InputType>, TransportPacket >
 {
   public: 
-
+    using base_type   = base_layer<TransportLayer<InputType>, TransportPacket >; 
     using InputType_t = InputType;
     using TransportPktVec = std::vector<TransportPacket>;
 

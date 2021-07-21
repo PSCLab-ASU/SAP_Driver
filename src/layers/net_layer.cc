@@ -1,4 +1,7 @@
 #include "include/layers/net_layer.h"
+#include "include/layers/packets/trans_packet.h"
+#include <sstream>
+
 
 template<typename InputType>
 NetworkLayer<InputType>::NetworkLayer()
@@ -69,73 +72,78 @@ int NetworkLayer<InputType>::_track_device(NetworkPacket&& in, NetworkPktVec& ou
   dev_info.set_id( _sm.get_num_devices() + 1 );
 
   //must match all the mac addresses to be an exact match
-  bool exists = _sm.exact_match( dev_info );
+  bool exists = _sm.device_exists( dev_info );
+  printf("NET device_exists : exists = %i \n", exists); 
 
-  out.push_back( NetworkPacket{} );
-  return 0;
-
-  if( exists )
-  {
-    auto& dev = _sm.get_device_info( dev_info );
-
-    //update everything except for the state of aux links
-    dev.update( dev_info ); 
-
-    return 0; 
+  if( !exists ){
+    _sm.add_device_information( dev_info );
   }
-  else _sm.add_device_information( dev_info );
 
-  auto np = _packetize_discovery( dev_info ); 
-
-  out.push_back( np );
-
+  //artifical noop
+  out.push_back(NetworkPacket{} );
   return 0;
+
 }
 
 template<typename InputType>
 int NetworkLayer<InputType>::_keep_alive(NetworkPacket&& in, NetworkPktVec& out )
 {
   printf("NET KEEP_ALIVE\n");
-  out.push_back( NetworkPacket{} );
-  return 0; 
-}
-
-template<typename InputType>
-NetworkPacket NetworkLayer<InputType>::_packetize_discovery( const NetworkPacket::device_information& device  )
-{
-  const size_t four = 4;
-  NetworkPacket np( common_layer_cmds::discovery );
+  accel_descriptor acd;
+  auto[mac_sz,  n_macs,  mac_ptr ] = in.get_tlv(5); //src_mac
+  auto[desc_sz, n_descs, desc_ptr] = in.get_tlv(0); //descs
+  auto[cong_sz, n_congs, cong_ptr] = in.get_tlv(1); //link congest
+  printf("NET MAC: %i, %i, \n", mac_sz, n_macs);
+  printf("NET DESC: %i, %i, \n", desc_sz, n_descs);
+  printf("NET LCONG: %i, %i, \n", cong_sz, n_congs);
  
-  const unsigned char is_active = (const uchar) device.is_active();
-  auto desc = device.serialize_desc();
-  size_t desc_size = desc.size();
-  std::string id  = device.get_id();
-  size_t id_size  = id.size();
+  printf("NET MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
+         mac_ptr[0], mac_ptr[1], mac_ptr[2],mac_ptr[3], mac_ptr[4], mac_ptr[5]); 
 
-  ////////////////////////////////////////////////////////////
-  /////////////////....adding active....//////////////////////
-  np.append_ctrl_data(1, &is_active);
-  /////////////////....adding id....//////////////////////////
-  np.append_ctrl_data(4, (const unsigned char *) &id_size );
-  np.append_data(id_size,(const unsigned char *) id.c_str() );
-  ////////////////////////////////////////////////////////////
-  /////////////////....adding desc....////////////////////////
-  np.append_ctrl_data(4, (const unsigned char *) &desc_size );
-  np.append_data(desc.size(), desc.data() );
-  ////////////////////////////////////////////////////////////
-  /////////////////....adding link congestion..../////////////
-  size_t cong = device.get_average_congestion();
-  np.append_ctrl_data(4, (const unsigned char *) &four );
-  np.append_data(4, (const unsigned char *) &cong );
-  ////////////////////////////////////////////////////////////
-   
-  ////////////////////////////////////////////////////////////
-  ////////////////.....adding extra data...../////////////////
-  auto [byte_size, ptr] =  device.get_extra();
-  np.append_ctrl_data(sizeof(decltype(byte_size) ), 
-                      (const unsigned char *) &byte_size);
-  np.append_data(byte_size, ptr);
-  ////////////////////////////////////////////////////////////
+  printf("NET DATA : %llu : %td : %td : ", 
+        (in.get_data<false>().size() ),
+        (in.get_data() - in.get_data<false>().data()),
+        (ptrdiff_t) (mac_ptr - in.get_data<false>().data() ) );
+  std::ranges::for_each( in.get_data<false>(), [](auto v)
+  {
+    printf( "%02x,", v );
+  });
 
-  return np;
+ 
+  std::string mac = std::string( (char *) mac_ptr, 6);
+  for(int i=HW_VID; i < ACCEL_ID_END; i++) 
+  {
+    unsigned int desc = ((ushort *) desc_ptr)[i];
+    printf("NET DESC[%i] = %04x\n", i, desc);
+
+    acd[(accel_desc_param)i] = desc;
+  }
+
+  ushort link_cong = ( (ushort *) cong_ptr)[0];
+  printf("NET LCONG = %04x\n", link_cong);
+
+  unsigned char dev_idx = 0;
+  auto& dev = _sm.get_device_info( mac, dev_idx );
+  auto avg_lcong = dev.get_avg_congest();
+
+  //////////////////////////////////////////////////////
+  auto dev_id = dev.get_id();
+  dev.set_lcong( mac, link_cong ); 
+  dev.set_desc( acd );
+  //////////////////////////////////////////////////////
+ 
+  in.set_op( TransportPacket::keep_alive ); 
+  //returns index of the device
+  in.append_ctrl_data( (unsigned char) dev_id.size() );
+  in.append_ctrl_data((unsigned char)  1 );
+  in.append_data( 1 , (const unsigned char *) dev_id.c_str() );
+  ///////////////////////////////////////////////////////
+  in.append_ctrl_data( (unsigned char)  sizeof(avg_lcong) );
+  in.append_ctrl_data( (unsigned char)  1       );
+  in.append_data( 1 ,  (const unsigned char *) &avg_lcong );
+  ///////////////////////////////////////////////////////
+  out.push_back( std::forward<decltype(in)>(in) );
+  return 0; 
+  
 }
+

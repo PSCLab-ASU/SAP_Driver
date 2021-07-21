@@ -114,7 +114,7 @@ DatalinkPacket::device_information::deserialize( DatalinkPacket& dp, std::string
 
   auto dev_info = device_information(desc, intf_name, src_mac, aux_macs);
   //advancing ctrl and data offsets
-  if(adv_tlv) dp.advance_tlv(3);
+  if(adv_tlv) dp.advance_tlv(2);
 
   return dev_info;
 

@@ -130,16 +130,28 @@ void DatalinkLayer<InputType>::_upstream_dev_info( DatalinkPacket& prev, Datalin
 
   if constexpr( std::is_same_v<DevUpdate, std::string> )
   {
-    printf("DL3 KEEPALIVE\n");
-    dp.set_op( NetworkPacket::keep_alive );
-    //TLV 0 : MACS //
-    dp.append_ctrl_data( (unsigned char) mac_size);
-    dp.append_ctrl_data( (unsigned char)1 );
-    dp.append_data( o_dev_update->size(), (const unsigned char *) o_dev_update->c_str() );
+    printf("DL3 KEEPALIVE : %i\n", NetworkPacket::keep_alive);
+    prev.set_op( NetworkPacket::keep_alive );
+    //TLV LAST : MACS //
+    prev.insert_ctrl_data(1, 0); //<--filler for cnt
+    /////////////////Eth Padding/////////////////////
+    prev.append_ctrl_data( (unsigned char) 1 );
+    prev.append_ctrl_data( (unsigned char) 6 );
+    /////////////////////////////////////////////////
+    prev.append_ctrl_data( (unsigned char) 1 );
+    prev.append_ctrl_data( (unsigned char) mac_size);
+    prev.append_data( o_dev_update->size(), (const unsigned char *) o_dev_update->c_str() );
     //this function will merge the extra data from the previous layer
     //this data gets the efficiency numbers
-    dp.fuse_extra( prev.get_base() ); //should have desc, port cong, device cong
-    out.push_back(dp);
+    printf("NET DLINK mac: %02x:%02x:%02x:%02x:%02x:%02x \n", 
+           o_dev_update->c_str()[0],
+           o_dev_update->c_str()[1],
+           o_dev_update->c_str()[2],
+           o_dev_update->c_str()[3],
+           o_dev_update->c_str()[4],
+           o_dev_update->c_str()[5]
+          );
+    out.push_back(prev);
   }
   else 
   {
@@ -167,6 +179,12 @@ void DatalinkLayer<InputType>::_upstream_dev_info( DatalinkPacket& prev, Datalin
     //this function will merge the extra data from the previous layer
     //this data gets the efficiency numbers
     //dp.fuse_extra( prev.get_base() );
+    auto s = dp.get_data<false>();
+    printf(" DL3 DATA : ");
+    for(int i=0; i < serial_macs.size(); i++)
+    {
+      printf("%02x,", serial_macs[i] );
+    } 
     out.push_back(dp);
     
   }
