@@ -73,6 +73,19 @@ template<typename InputType>
 int SessionLayer<InputType>::_device_info(SessionPacket&& in, SessionPktVec& out )
 {
 
-  std::cout << "Calling Session SESS _device_info..." << std::endl;
+  auto device = SessionPacket::device_information::deserialize( in );
+  
+  if ( _sm.device_exists( device.get_id() ) ) 
+  {
+    printf("SESS Updating existing device: %s\n", device.get_id().c_str() );
+    auto& dev = _sm.get_device_info( device.get_id() );
+    dev = device;
+  }
+  else 
+  {
+    printf("SESS Registering new device : %s\n", device.get_id().c_str() ); 
+    _sm.add_device_information( device );
+  }
+
   return 0;
 }

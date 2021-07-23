@@ -13,12 +13,10 @@ struct SessSM
 {
   using device_info_reg_t = std::vector<SessionPacket::device_information>;
 
-  bool device_exists( const device_info_reg_t::value_type& ) const;
- 
-  bool exact_match( const device_info_reg_t::value_type& ) const;
+  bool device_exists( std::string ) const;
  
   SessionPacket::device_information& 
-  get_device_info( const SessionPacket::device_information& dev_info );
+  get_device_info( std::string  );
   
  
   void add_device_information( const SessionPacket::device_information& dl_dev_info)

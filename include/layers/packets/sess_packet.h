@@ -12,58 +12,32 @@ struct SessionPacket : public BasePacket
 
   struct device_information;
 
-  struct ctrl_intf
-  {
-    friend class SessionPacket;
-
-    public :
-    
-      auto get(){ return _ctrl; }
-
-    private:
-
-      ctrl_intf( const std::vector<uchar>& ctrl )
-      : _ctrl( ctrl ) 
-      {}     
- 
-      ctrl_intf( ){}
-
-      std::vector<uchar> _ctrl;  
-    
-  };
-
-  ctrl_intf get_ctrl()
-  {
-    return ctrl_intf( get_ctrl() );
-  }
-
-  static ctrl_intf create_ctrl( )
-  {
-    return ctrl_intf();
-  }
-
    //restriction interface view
   SessionPacket( typename BasePacket::type base );
 
   SessionPacket( ushort );
-
-  std::optional<unsigned char *>
-  try_extract_dev_info();
 
   enum : unsigned char { discovery=PresentationPacket::END+1, device_info, END };
 };
 
 struct SessionPacket::device_information : public base_device_information
 {
-  static device_information deserialize( unsigned char *);
+  static device_information deserialize( const SessionPacket& );
 
-  device_information& operator =( const device_information& );
-
+  device_information( std::string id, ushort alc, ushort dec_occ, ushort dev_reprog) 
+  : _id(id), _avg_link_congestion(alc), _device_occupancy( dec_occ ), _device_reprog( dev_reprog ) {}
+ 
   std::string get_id() const  { return _id; }
 
-  std::string _id;
-};
+  void set_id( std::string id) { _id = id; }
+  void set_alcong( ushort congestion ) { _avg_link_congestion = congestion; }
+  void set_dev_ocp(ushort occupancy) { _device_occupancy = occupancy; } 
+  void set_dev_reprog( ushort reprog_cost ) { _device_reprog = reprog_cost; } 
 
-bool operator==( const SessionPacket::device_information&,
-                 const SessionPacket::device_information& );
+  std::string _id;
+  ushort _avg_link_congestion;
+  ushort _device_occupancy;
+  ushort _device_reprog;
+ 
+};
 
