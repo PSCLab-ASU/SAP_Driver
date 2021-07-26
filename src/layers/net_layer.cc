@@ -22,6 +22,7 @@ NetworkLayer<InputType>::NetworkLayer()
   this->template register_cmd<FromPhy>(cleanup, &class_type::_cleanup_us);
   this->template register_cmd<FromPhy>(discovery, &class_type::_track_device);
   this->template register_cmd<FromPhy>(NetworkPacket::keep_alive, &class_type::_keep_alive);
+  this->template register_cmd<FromPhy>(NetworkPacket::deactivate_port, &class_type::_deactivate_port);
 
 }
 
@@ -85,6 +86,33 @@ int NetworkLayer<InputType>::_track_device(NetworkPacket&& in, NetworkPktVec& ou
 
 }
 
+template<typename InputType>
+int NetworkLayer<InputType>::_deactivate_port(NetworkPacket&& in, NetworkPktVec& out )
+{
+  unsigned char dev_idx = 0;
+  auto[mac_sz,  n_macs,  mac_ptr ] = in.get_tlv(0); //src_mac
+  auto mac = std::string((char *) mac_ptr, mac_sz);
+
+  if( _sm.device_exists( mac ) )
+  {
+    auto& dev = _sm.get_device_info( mac, dev_idx );
+    dev.deactivate_port( mac );
+
+    if(dev.is_inaccessible() ) 
+    {
+      auto dev_id = dev.get_id();
+      NetworkPacket np( TransportPacket::deactivate_device );
+      np.append_ctrl_data( (unsigned char) dev_id.size() );
+      np.append_ctrl_data((unsigned char)  1 );
+      np.append_data( 1 , (const unsigned char *) dev_id.c_str() );
+      out.push_back( np );
+      printf("NET LOST Device %s \n", dev_id.c_str() );
+    }
+
+  }else printf("NET Mac doesn't exists\n");
+
+  return 0;
+}
 template<typename InputType>
 int NetworkLayer<InputType>::_keep_alive(NetworkPacket&& in, NetworkPktVec& out )
 {

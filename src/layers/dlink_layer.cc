@@ -42,7 +42,7 @@ int DatalinkLayer<InputType>::_self_ds(DatalinkPacket&& in, DatalinkPktVec& out 
   //if( (get_hb_count() % _lldp_interval) == 0 ) 
 
   //this function checks all the device timers and invalidate if necessary
-  //_check_invalidate( out );
+  _check_invalidate( out );
 
   return 0;
 }
@@ -201,10 +201,20 @@ void DatalinkLayer<InputType>::_check_invalidate( DatalinkPktVec& out )
 
   for(auto& cand_dev : flow ) {
     auto exp_macs = cand_dev.get_recently_exp_macs();
-    auto dp_out   = _gen_exp_mac_req( std::move(exp_macs) );
-    out.push_back(dp_out);
+    for( auto mac : exp_macs )
+    {
+      printf("DLINK  Deactivating %02x:%02x:%02x:%02x:%02x:%02x\n",
+             mac[0], mac[1],mac[2],mac[3],mac[4],mac[5] );
+
+      DatalinkPacket dp( NetworkPacket::deactivate_port );
+      dp.append_ctrl_data( (unsigned char) 6);
+      dp.append_ctrl_data( (unsigned char) 1);
+      dp.append_data( mac.size(), (const unsigned char *) mac.c_str() );
+
+      out.push_back(dp);
+    }
   }
-                       
+
 }
 
 template<typename InputType>
@@ -220,9 +230,3 @@ DatalinkPacket DatalinkLayer<InputType>::_req_mac_address( )
 }
 
 
-template<typename InputType>
-DatalinkPacket DatalinkLayer<InputType>::_gen_exp_mac_req(std::vector<std::string>&& exp_macs )
-{
-  //TBD
-  return DatalinkPacket();
-}

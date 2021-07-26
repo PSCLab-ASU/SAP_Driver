@@ -72,7 +72,7 @@ class SessionLayer : public base_layer<SessionLayer<InputType>, SessionPacket >
 
     int _cleanup_us(SessionPacket&& in, SessionPktVec& out );
 
-    int _track_device(SessionPacket&& in, SessionPktVec& out );
+    int _deactivate_device(SessionPacket&& in, SessionPktVec& out );
 
     int _device_info(SessionPacket&& in, SessionPktVec& out );
 

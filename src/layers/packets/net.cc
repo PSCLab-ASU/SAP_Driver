@@ -95,6 +95,24 @@ NetworkPacket::device_information::deserialize( const NetworkPacket & np )
   return dev_info;
 }
 
+void 
+NetworkPacket::device_information::deactivate_port( std::string mac )
+{
+  auto devIt = std::ranges::find_if(_macs, equal_to{mac}, &mac_params::get_mac );
+ 
+  if ( devIt != _macs.end() ) devIt->deactivate();
+  else printf(" NET Port doesn't exists \n" ); 
+
+}
+
+bool 
+NetworkPacket::device_information::is_inaccessible( )
+{
+  return
+  std::ranges::all_of(_macs, equal_to{false}, 
+                      &mac_params::get_link_status );
+}
+
 bool operator==( const NetworkPacket::device_information& lhs,
                  const NetworkPacket::device_information& rhs )
 {
@@ -137,6 +155,20 @@ bool NetSM::device_exists( const NetworkPacket::device_information& cand_dev) co
       } );
 
     }); 
+
+  });
+
+}
+
+bool NetSM::device_exists( std::string mac ) const
+{
+
+  //go through every device
+  return std::ranges::any_of( _devices.second, [&](auto device)
+  {
+      //go through each mac of the device and compare to list
+    return std::ranges::any_of(device._macs, equal_to{mac}, 
+                               &NetworkPacket::device_information::mac_params::get_mac);
 
   });
 

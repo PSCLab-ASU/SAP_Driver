@@ -201,6 +201,7 @@ void DatalinkPacket::device_information::update_link_status(int intf_id, std::st
   auto found_mac = std::ranges::find_if(_macs, equal_to{src_mac}, &mac_params::src_mac);
 
   found_mac->intf_name = std::to_string( intf_id );
+  found_mac->set_keepalive();
 
   if( link_status ) found_mac->renew();
   else found_mac->expired();

@@ -18,8 +18,8 @@ SessionLayer<InputType>::SessionLayer()
   this->template register_cmd<FromPhy>(self, &class_type::_self_us);
   this->template register_cmd<FromApp>(cleanup, &class_type::_cleanup_ds);
   this->template register_cmd<FromPhy>(cleanup, &class_type::_cleanup_us);
-  this->template register_cmd<FromPhy>(discovery, &class_type::_track_device);
   this->template register_cmd<FromPhy>(SessionPacket::device_info, &class_type::_device_info);
+  this->template register_cmd<FromPhy>(SessionPacket::deactivate_device, &class_type::_deactivate_device);
 
 }
 
@@ -62,10 +62,16 @@ int SessionLayer<InputType>::_cleanup_us(SessionPacket&& in, SessionPktVec& out 
 }
 
 template<typename InputType>
-int SessionLayer<InputType>::_track_device(SessionPacket&& in, SessionPktVec& out )
+int SessionLayer<InputType>::_deactivate_device(SessionPacket&& in, SessionPktVec& out )
 {
+  std::cout << "Calling _deatvieate_device..." << std::endl;
+  auto[dev_id_sz,  n_dev_ids,  dev_id_ptr]  = in.get_tlv(0); //device id
+  uchar dev_id = dev_id_ptr[0];
+  ushort id = ( ushort) dev_id;
 
-  std::cout << "Calling _track_device..." << std::endl;
+  auto& dev = _sm.get_device_info( std::to_string(id) );
+  dev.deactivate();
+    
   return 0;
 }
 

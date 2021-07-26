@@ -103,13 +103,11 @@ class DatalinkLayer : public base_layer<DatalinkLayer<InputType>, DatalinkPacket
     template<typename DevUpdate=NullType>
     void _upstream_dev_info( DatalinkPacket& prev, DatalinkPktVec& out, std::optional<DevUpdate> dev_info ={} );
 
-    DatalinkPacket _gen_exp_mac_req( std::vector<std::string>&& );
-
     DatalinkPacket _req_mac_address();
 
     inline static DLinkSM _sm;
 
-    const size_t _device_timeout = 60;
+    const size_t _device_timeout = 120;
 
     const size_t _lldp_interval = 100;
   

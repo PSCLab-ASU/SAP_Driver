@@ -19,6 +19,8 @@ TransportLayer<InputType>::TransportLayer()
   this->template register_cmd<FromPhy>(cleanup, &class_type::_cleanup_us);
   this->template register_cmd<FromPhy>(TransportPacket::keep_alive, 
                                        &class_type::template pass_through<SessionPacket::device_info> );
+  this->template register_cmd<FromPhy>(TransportPacket::deactivate_device, 
+                                       &class_type::template pass_through<SessionPacket::deactivate_device> );
 
 }
 

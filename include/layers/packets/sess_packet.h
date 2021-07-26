@@ -17,7 +17,7 @@ struct SessionPacket : public BasePacket
 
   SessionPacket( ushort );
 
-  enum : unsigned char { discovery=PresentationPacket::END+1, device_info, END };
+  enum : unsigned char { discovery=PresentationPacket::END+1, device_info, deactivate_device, END };
 };
 
 struct SessionPacket::device_information : public base_device_information
@@ -29,11 +29,16 @@ struct SessionPacket::device_information : public base_device_information
  
   std::string get_id() const  { return _id; }
 
+  void activate()   { _active = true;  }
+  void deactivate() { _active = false; }
+
   void set_id( std::string id) { _id = id; }
   void set_alcong( ushort congestion ) { _avg_link_congestion = congestion; }
   void set_dev_ocp(ushort occupancy) { _device_occupancy = occupancy; } 
   void set_dev_reprog( ushort reprog_cost ) { _device_reprog = reprog_cost; } 
 
+
+  bool _active=true;
   std::string _id;
   ushort _avg_link_congestion;
   ushort _device_occupancy;

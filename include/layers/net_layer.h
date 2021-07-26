@@ -14,6 +14,8 @@ struct NetSM
   using device_info_reg_t = std::vector<NetworkPacket::device_information>;
 
   bool device_exists( const device_info_reg_t::value_type& ) const;
+
+  bool device_exists( std::string ) const;
  
   bool exact_match( const device_info_reg_t::value_type& ) const;
 
@@ -85,6 +87,8 @@ class NetworkLayer : public base_layer<NetworkLayer<InputType>, NetworkPacket >
     int _track_device(NetworkPacket&& in, NetworkPktVec& out );
 
     int _keep_alive(NetworkPacket&& in, NetworkPktVec& out );
+
+    int _deactivate_port(NetworkPacket&& in, NetworkPktVec& out );
 
     /////////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////////
