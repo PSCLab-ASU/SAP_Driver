@@ -59,6 +59,16 @@ struct base_pipeline_data
     return _ctrl[0];
   }
 
+  std::atomic_ushort& get_aop()
+  {
+    return _aop;
+  }
+  
+  void make_op_atomic()
+  {
+    _aop.store(get_op() );
+  } 
+
   decltype(auto) get_ctrl()
   {
     return (_ctrl);
@@ -248,6 +258,8 @@ struct base_pipeline_data
       std::out_of_range("advanced out of range" + std::to_string(idx) );
     
   }
+
+  std::atomic_ushort _aop;
 
   //is complete forces a 0 remaining TLV
   bool _complete=false;
@@ -505,6 +517,7 @@ struct pipeline_data
  
   auto get_data(){ return _data; }
 
+
   operator bool(){ return (bool)_data; } 
 
   void set_pkt_operation(uchar op){
@@ -534,6 +547,16 @@ struct pipeline_data
     if( (bool) _data )
       return _data->reset_dst();
   }
+
+  std::atomic_ushort& get_atomic_op()
+  {
+    return _data->get_aop( );
+  }
+  
+  void make_op_atomic()
+  {
+    _data->make_op_atomic( );
+  } 
 
   private:
 

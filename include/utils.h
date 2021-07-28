@@ -27,7 +27,7 @@ constexpr auto heart_beat();
 constexpr auto rest();
 
 namespace common_layer_cmds { 
-  enum : unsigned char {noop=0, discovery, self, cleanup, command1, command2, command3, END }; 
+  enum : unsigned char {noop=0, discovery, self, cleanup, any, command2, command3, END }; 
 }
 
 const unsigned int g_accelerator_type = 0xab80;
@@ -84,7 +84,12 @@ struct base_device_information
   {
     for(size_t i=0; i < nbyte; i++) _extra.push_back( data[i] );
   }
-
+ 
+  std::string stringify_desc() const;
+ 
+  static base_device_information 
+  deserialize( const uchar *);
+ 
   std::vector<unsigned char> serialize_desc() const;
 
   void activate()   { _active = true; }

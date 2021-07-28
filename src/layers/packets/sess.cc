@@ -61,8 +61,10 @@ SessionPacket::device_information::deserialize( const SessionPacket& in )
 ////////////////////////////////.....Shared memory methods.....//////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool SessSM::device_exists( std::string dev_id ) const
+bool SessSM::device_exists( std::string dev_id )
 {
+  std::lock_guard lk(_devices.first); 
+
   return
   std::ranges::any_of( _devices.second, equal_to{dev_id}, 
                       &SessionPacket::device_information::get_id );
@@ -70,10 +72,33 @@ bool SessSM::device_exists( std::string dev_id ) const
 
 SessionPacket::device_information& 
 SessSM::get_device_info( std::string dev_id )
-{
-  
+{  
+  std::lock_guard lk(_devices.first);
+
   return 
   *std::ranges::find_if( _devices.second, equal_to{dev_id}, 
                          &SessionPacket::device_information::get_id );
 }
 
+std::map<std::string, std::string >
+SessSM::serialize_device_info()
+{
+  std::map<std::string ,std::string> id_descs;
+
+  std::lock_guard lk(_devices.first);  
+
+  std::ranges::for_each(_devices.second,  [&](auto dev)
+  {
+     if( dev.is_active() )
+     {
+       auto id = dev.get_id();
+       auto desc = dev.serialize_desc();
+       auto desc_str = std::string((char *)desc.data(), desc.size() );
+       id_descs[id] = desc_str;
+     }
+
+  } ); 
+
+  return id_descs;
+
+}

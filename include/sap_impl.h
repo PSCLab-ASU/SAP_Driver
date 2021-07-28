@@ -8,6 +8,7 @@
 #include "include/utils.h"
 #include "include/pipeline.h"
 #include "include/pipeline_data.h"
+#include "include/app_structs.h"
 
 
 class SAPLibPImpl;
@@ -22,6 +23,9 @@ class SAPLibPImpl
     void init( std::vector<std::string> ); 
 
     void finalize(); 
+
+    app_error_t get_available_devices( app_intf::devices& );
+
 
     template<Pipelineflow plf >
     void operator()( std::stop_token, std::integral_constant<Pipelineflow, plf> );

@@ -3,6 +3,8 @@
 #include <chrono>
 #include <sstream>
 #include <iostream>
+#include <numeric>
+#include <functional>
 #include "include/utils.h"
 
 #ifndef UTILS
@@ -38,4 +40,31 @@ base_device_information::serialize_desc() const
   return out;   
 }
 
+base_device_information 
+base_device_information::deserialize( const uchar * desc_ptr)
+{
+  base_device_information bdi;
+  const uint * desc = (uint *) desc_ptr;
+
+  for(int i=0; i < ACCEL_ID_END; i++)
+  {
+    bdi.set_param((accel_desc_param)i, desc[i] );
+  }
+
+  return bdi;
+}
+
+std::string base_device_information::stringify_desc() const
+{
+  auto colon_fold = [](std::string a, auto b) 
+  {
+    return std::move(a) + ':' + std::to_string(b.second);
+  };
+ 
+  std::string first = std::to_string(_descs.at((accel_desc_param)0 ));
+  std::string sdesc = std::accumulate(std::next(_descs.begin()), _descs.end(),
+                                      first, colon_fold);
+
+  return sdesc;
+}
 #endif

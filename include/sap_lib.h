@@ -1,6 +1,7 @@
 #include "include/sap_impl.h"
 #include <mutex>
 #include <vector>
+#include <map>
 
 class SAPLib
 {
@@ -10,6 +11,8 @@ class SAPLib
     SAPLib();
 
     void init( std::vector<std::string> );
+
+    std::map<uint, std::string> get_available_devices( );
 
     void finalize();
 

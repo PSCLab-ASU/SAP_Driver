@@ -72,12 +72,17 @@ class InOutLayer : public base_layer<InOutLayer<InOutType>, InOutPacket >
       else
       {
         std::cout << "Adding pop interface out of pipeline " << std::endl;
-        pop = [&]()->std::optional<PipelineOutput>
+        pop = [&]( ushort op )->std::optional<PipelineOutput>
               {
-                std::lock_guard lk(_out_mu);
                 if( _output_q.empty() ) return {};
-       
-                PipelineOutput out = _output_q.front();
+                
+                PipelineOutput& out = _output_q.front();
+                auto& aop = out.get_atomic_op( );
+
+                while( !aop.compare_exchange_weak(op, common_layer_cmds::noop ) )
+                  continue;
+
+                std::lock_guard lk(_out_mu);
                 _output_q.pop();
                 return out;
               };
@@ -143,7 +148,11 @@ class InOutLayer : public base_layer<InOutLayer<InOutType>, InOutPacket >
     {
       std::cout << "self output_mux... " << std::endl;
       std::lock_guard lk( _out_mu );
-      _output_q.push( in.get_base() );
+
+      PipelineOutput po( in.get_base() );
+      po.make_op_atomic();
+  
+      _output_q.push( std::move(po)  );
 
       out.push_back( InOutPacket{} );
 

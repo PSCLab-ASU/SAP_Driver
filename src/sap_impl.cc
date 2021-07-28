@@ -4,6 +4,7 @@
 #include "include/sap_impl.h"
 #include "include/utils.h"
 #include "include/layers/packets/phy_packet.h"
+#include "include/layers/packets/pres_packet.h"
 
 
 SAPLibPImpl::SAPLibPImpl()
@@ -79,6 +80,21 @@ void SAPLibPImpl::finalize()
  
 }
 
+
+app_error_t SAPLibPImpl::get_available_devices( app_intf::devices& di )
+{
+  PresentationPacket pp( PresentationPacket::get_devices );
+
+  _pipeline.push( pp.get_base() );
+
+  auto data = _pipeline.pop( PresentationPacket::get_devices );
+
+  auto _di = app_intf::devices::deserialize( std::move(data.value()) ); //uses BasePacket;
+
+  di = _di; 
+  
+  return app_error_t{};
+}
 
 SAPLibPImpl& GetDefaultSAPPImpl()
 {

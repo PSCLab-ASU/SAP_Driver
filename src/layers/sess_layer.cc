@@ -20,6 +20,7 @@ SessionLayer<InputType>::SessionLayer()
   this->template register_cmd<FromPhy>(cleanup, &class_type::_cleanup_us);
   this->template register_cmd<FromPhy>(SessionPacket::device_info, &class_type::_device_info);
   this->template register_cmd<FromPhy>(SessionPacket::deactivate_device, &class_type::_deactivate_device);
+  this->template register_cmd<FromApp>(SessionPacket::get_devices, &class_type::_get_devices);
 
 }
 
@@ -91,6 +92,41 @@ int SessionLayer<InputType>::_device_info(SessionPacket&& in, SessionPktVec& out
   {
     printf("SESS Registering new device : %s\n", device.get_id().c_str() ); 
     _sm.add_device_information( device );
+  }
+
+  return 0;
+}
+
+
+template<typename InputType>
+int SessionLayer<InputType>::_get_devices(SessionPacket&&, SessionPktVec& out )
+{
+  printf("Calling SESS _get_devices\n");
+
+  auto id_descs  = _sm.serialize_device_info(); 
+  auto n_devices = id_descs.size(); 
+
+  SessionPacket sp(PresentationPacket::get_devices);
+
+  sp.append_ctrl_data( (unsigned char) 1 );
+  sp.append_ctrl_data((unsigned char) 1 );
+  sp.append_data( 1, (const unsigned char *) &n_devices );
+
+  for( auto[id, desc] : id_descs)
+  {
+    //Adding IDs
+    sp.append_ctrl_data( (unsigned char) id.size() );
+    sp.append_ctrl_data((unsigned char) 1 );
+    sp.append_data( id.size(), (const unsigned char *) id.c_str() );
+   
+    //adding descs
+    sp.append_ctrl_data( (unsigned char) desc.size() );
+    sp.append_ctrl_data((unsigned char) 1 );
+    sp.append_data( desc.size(), (const unsigned char *) desc.c_str() );
+
+    sp.mark_as_resp();
+
+    out.push_back( sp );
   }
 
   return 0;

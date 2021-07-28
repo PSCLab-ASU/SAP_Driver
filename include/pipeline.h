@@ -16,7 +16,7 @@ struct pipeline_impl
 
   using InOutIntf = std::tuple<Pipelineflow,
                                std::function<void(InputType&&)>, 
-                               std::function<OutputType()> >;
+                               std::function<OutputType( const ushort& )> >;
 
   using _pl_definition = std::tuple<decltype(InOutL() ),
                                     decltype(PresL()()), decltype(SessL()()), decltype(TransL()()), 
@@ -75,10 +75,11 @@ struct pipeline_impl
     std::cout << "Pushed data into queue" << std::endl;
   }
 
-  OutputType pop()
+  OutputType pop(ushort op = common_layer_cmds::any )
   {
     auto _pop = std::get<2>(_inout_intf);
-    return _pop();
+    return _pop( op );
+ 
   }
 
   std::mutex _mu;

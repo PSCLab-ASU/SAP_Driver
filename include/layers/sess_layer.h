@@ -13,11 +13,13 @@ struct SessSM
 {
   using device_info_reg_t = std::vector<SessionPacket::device_information>;
 
-  bool device_exists( std::string ) const;
+  bool device_exists( std::string );
  
   SessionPacket::device_information& 
   get_device_info( std::string  );
-  
+ 
+  std::map<std::string, std::string>
+  serialize_device_info(); 
  
   void add_device_information( const SessionPacket::device_information& dl_dev_info)
   {
@@ -75,6 +77,8 @@ class SessionLayer : public base_layer<SessionLayer<InputType>, SessionPacket >
     int _deactivate_device(SessionPacket&& in, SessionPktVec& out );
 
     int _device_info(SessionPacket&& in, SessionPktVec& out );
+
+    int _get_devices(SessionPacket&& in, SessionPktVec& out );
 
     inline static SessSM _sm;
 };
