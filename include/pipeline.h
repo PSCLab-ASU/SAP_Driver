@@ -75,7 +75,7 @@ struct pipeline_impl
     std::cout << "Pushed data into queue" << std::endl;
   }
 
-  OutputType pop(ushort op = common_layer_cmds::any )
+  OutputType pop(ushort op  )
   {
     auto _pop = std::get<2>(_inout_intf);
     return _pop( op );

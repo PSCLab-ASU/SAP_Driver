@@ -21,7 +21,6 @@ SessionLayer<InputType>::SessionLayer()
   this->template register_cmd<FromPhy>(SessionPacket::device_info, &class_type::_device_info);
   this->template register_cmd<FromPhy>(SessionPacket::deactivate_device, &class_type::_deactivate_device);
   this->template register_cmd<FromApp>(SessionPacket::get_devices, &class_type::_get_devices);
-
 }
 
 template<typename InputType>
@@ -66,13 +65,16 @@ template<typename InputType>
 int SessionLayer<InputType>::_deactivate_device(SessionPacket&& in, SessionPktVec& out )
 {
   std::cout << "Calling _deatvieate_device..." << std::endl;
-  auto[dev_id_sz,  n_dev_ids,  dev_id_ptr]  = in.get_tlv(0); //device id
+  auto[ n_dev_ids, dev_id_sz,  dev_id_ptr]  = in.get_tlv(0); //device id
   uchar dev_id = dev_id_ptr[0];
   ushort id = ( ushort) dev_id;
 
   auto& dev = _sm.get_device_info( std::to_string(id) );
   dev.deactivate();
     
+  out.push_back( SessionPacket{} );
+  
+
   return 0;
 }
 
@@ -94,40 +96,42 @@ int SessionLayer<InputType>::_device_info(SessionPacket&& in, SessionPktVec& out
     _sm.add_device_information( device );
   }
 
+  out.push_back( SessionPacket{} );
+
   return 0;
 }
 
 
 template<typename InputType>
-int SessionLayer<InputType>::_get_devices(SessionPacket&&, SessionPktVec& out )
+int SessionLayer<InputType>::_get_devices(SessionPacket&& in, SessionPktVec& out )
 {
-  printf("Calling SESS _get_devices\n");
+  printf("\n1)Calling SESS _get_devices\n");
 
   auto id_descs  = _sm.serialize_device_info(); 
   auto n_devices = id_descs.size(); 
 
   SessionPacket sp(PresentationPacket::get_devices);
 
-  sp.append_ctrl_data( (unsigned char) 1 );
   sp.append_ctrl_data((unsigned char) 1 );
+  sp.append_ctrl_data( (unsigned char) 1 );
   sp.append_data( 1, (const unsigned char *) &n_devices );
 
   for( auto[id, desc] : id_descs)
   {
     //Adding IDs
-    sp.append_ctrl_data( (unsigned char) id.size() );
     sp.append_ctrl_data((unsigned char) 1 );
+    sp.append_ctrl_data( (unsigned char) id.size() );
     sp.append_data( id.size(), (const unsigned char *) id.c_str() );
+    printf("SESS_DEV_ID = %s\n", id.c_str() ); 
    
     //adding descs
-    sp.append_ctrl_data( (unsigned char) desc.size() );
     sp.append_ctrl_data((unsigned char) 1 );
+    sp.append_ctrl_data( (unsigned char) desc.size() );
     sp.append_data( desc.size(), (const unsigned char *) desc.c_str() );
-
-    sp.mark_as_resp();
-
-    out.push_back( sp );
   }
+
+  sp.mark_as_resp();
+  out.push_back( sp );
 
   return 0;
 }

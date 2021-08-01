@@ -70,10 +70,13 @@ struct PhyPacket : public BasePacket
     auto ctrl_sz = data[0] + 1;
     printf(" parse_ctrl sz : %02x, op : %02x\n", ctrl_sz, data[ctrl_sz] );
 
-    ctrl = std::vector<uchar>(ctrl_sz, 0);
+    ctrl = std::vector<uchar>(ctrl_sz+2, 0);
     set_op( data[ctrl_sz] );
+
     //data[0] is size, and data[ctrl_sz] is the operation
-    for(ulong i=1; i < ctrl_sz; i++) ctrl[i] = data[i];
+
+    ctrl[1] = ctrl_sz-1;
+    for(ulong i=1; i < ctrl_sz; i++) ctrl[i+2] = data[i];
     set_offsets(0, ctrl_sz);
 
   }

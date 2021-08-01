@@ -133,7 +133,7 @@ void DatalinkLayer<InputType>::_upstream_dev_info( DatalinkPacket& prev, Datalin
     printf("DL3 KEEPALIVE : %i\n", NetworkPacket::keep_alive);
     prev.set_op( NetworkPacket::keep_alive );
     //TLV LAST : MACS //
-    prev.insert_ctrl_data(1, 0); //<--filler for cnt
+    //prev.insert_ctrl_data(1, 0); //<--filler for cnt
     /////////////////Eth Padding/////////////////////
     prev.append_ctrl_data( (unsigned char) 1 );
     prev.append_ctrl_data( (unsigned char) 6 );
@@ -171,8 +171,8 @@ void DatalinkLayer<InputType>::_upstream_dev_info( DatalinkPacket& prev, Datalin
     /////////////////////////////////////////////
     //dp.append_ctrl_data( serial_desc.size() );
     //dp.append_ctrl_data( 1 );
-    dp.append_ctrl_data( (unsigned char) mac_size);
     dp.append_ctrl_data( (unsigned char) dev_ptr->get_nmacs() );
+    dp.append_ctrl_data( (unsigned char) mac_size);
     //dp.append_data( serial_desc.size(), (const unsigned char *) serial_desc.data() );
     printf("DL3 DISCOVERY mac_size : %i\n", serial_macs.size() );
     dp.append_data( serial_macs.size(), (const unsigned char *) serial_macs.c_str() );
@@ -207,8 +207,8 @@ void DatalinkLayer<InputType>::_check_invalidate( DatalinkPktVec& out )
              mac[0], mac[1],mac[2],mac[3],mac[4],mac[5] );
 
       DatalinkPacket dp( NetworkPacket::deactivate_port );
-      dp.append_ctrl_data( (unsigned char) 6);
       dp.append_ctrl_data( (unsigned char) 1);
+      dp.append_ctrl_data( (unsigned char) 6);
       dp.append_data( mac.size(), (const unsigned char *) mac.c_str() );
 
       out.push_back(dp);

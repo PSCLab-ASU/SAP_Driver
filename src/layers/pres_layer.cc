@@ -1,3 +1,4 @@
+#include "include/layers/packets/inout_packet.h"
 #include "include/layers/pres_layer.h"
 #include "include/app_structs.h"
 #include <cstdlib>
@@ -73,10 +74,34 @@ template<typename InputType>
 int PresentationLayer<InputType>::_get_devices(PresentationPacket&& in, PresentationPktVec& out )
 {
 
-  std::cout << "Calling Presentation _get_devices..." << std::endl;
+  std::cout << "PRES Calling Presentation _get_devices..." << std::endl;
+  
+ /* auto d = in.get_data<false>();
+  auto ctrl = in.get_ctrl<false>();
+
+  auto ddo = in.get_data();
+  auto delta = ddo - d.data();
+
+  printf("PRES ctrl (size= %lu) = %p : ", ctrl.size(), ctrl.data() );
+  for(auto byt : ctrl) printf("%02x:", byt);
+  printf("\n");
+
+
+  printf("PRES (size= %lu) = %p : %p : ", d.size(), d.data(), ddo );
+  for(auto byt : d) printf("%02x:", byt);
+  printf("\n");
+
+  printf("PRES = " );
+  for(int i = 0; i < d.size(); i++ ) printf("%02x:", ddo[i] );
+  printf("\n");
+*/
   auto devs = app_intf::devices::deserialize( PipelineOutput(in.get_base() ) );
+  auto pkt  = devs.serialize();
+  pkt.set_op( PresentationPacket::get_devices );
  
-  out.push_back( devs.serialize().get_base() );
+  out.push_back( pkt.get_base() );
+
+  std::cout << "PRES Calling Presentation _get_devices completed..." << std::endl;
 
   return 0;
 }

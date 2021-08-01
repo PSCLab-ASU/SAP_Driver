@@ -77,17 +77,17 @@ DatalinkPacket::device_information::deserialize( DatalinkPacket& dp, std::string
   std::ranges::copy(ctrl_vec, std::ostream_iterator<unsigned int>(std::cout, " "));
   std::cout << '\n';
 
-  auto[addr_size, n_macs, macs_ptr] = dp.get_tlv(1);
+  //auto[addr_size, n_macs, macs_ptr] = dp.get_tlv(1);
+  auto[n_macs, addr_size, macs_ptr] = dp.get_tlv(1);
 
-  std::string aux_mac;
   for(int i=0; i < n_macs; i++)
   {
+    std::string aux_mac;
     for(int j=0; j < addr_size; j++)
       aux_mac.push_back( macs_ptr[j + i*addr_size] );
 
     aux_macs.push_back( aux_mac );
 
-    aux_mac.clear();
   }
   
   printf("FOUND_MACS  : %i, %i : %02x:%02x:%02x:%02x:%02x:%02x \n", addr_size, n_macs,
@@ -95,7 +95,7 @@ DatalinkPacket::device_information::deserialize( DatalinkPacket& dp, std::string
   printf("FOUND_MACS2 : %i, %i : %02x:%02x:%02x:%02x:%02x:%02x \n", addr_size, n_macs,
          macs_ptr[6],macs_ptr[7],macs_ptr[8],macs_ptr[9],macs_ptr[10],macs_ptr[11] );
  
-  auto[id_size, n_id, id_data_begin] = dp.get_tlv(2); 
+  auto[ n_id, id_size, id_data_begin] = dp.get_tlv(2); 
  
   auto id_ptr = (const unsigned short *) id_data_begin; 
   printf("FOUND_IDS : %i, %i : %04x:%04x:%04x:%04x:%04x\n", 

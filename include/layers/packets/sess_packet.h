@@ -15,7 +15,7 @@ struct SessionPacket : public BasePacket
    //restriction interface view
   SessionPacket( typename BasePacket::type base );
 
-  SessionPacket( ushort );
+  SessionPacket( ushort p=common_layer_cmds::noop );
 
   enum : unsigned char { discovery=PresentationPacket::END+1, device_info, deactivate_device, get_devices,  END };
 };

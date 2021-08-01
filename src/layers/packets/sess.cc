@@ -26,11 +26,11 @@ SessionPacket::device_information::deserialize( const SessionPacket& in )
 {
   
   accel_descriptor acd;
-  auto[desc_sz,    n_descs,    desc_ptr]    = in.get_tlv(0); //Accel desc
-  auto[docc_sz,    n_doccs,    docc_ptr]    = in.get_tlv(2); //device occupancy
-  auto[dreprog_sz, n_dreprogs, dreprog_ptr] = in.get_tlv(3); //device reprog
-  auto[dev_id_sz,  n_dev_ids,  dev_id_ptr]  = in.get_tlv(6); //device id
-  auto[alcong_sz,  n_alcongs,  alcong_ptr] = in.get_tlv(7); //Avg link congest
+  auto[n_descs,    desc_sz,    desc_ptr]     = in.get_tlv(0); //Accel desc
+  auto[n_doccs,    docc_sz,    docc_ptr]     = in.get_tlv(2); //device occupancy
+  auto[n_dreprogs, dreprog_sz, dreprog_ptr] = in.get_tlv(3); //device reprog
+  auto[n_dev_ids,  dev_id_sz,  dev_id_ptr]   = in.get_tlv(6); //device id
+  auto[n_alcongs,  alcong_sz,  alcong_ptr]   = in.get_tlv(7); //Avg link congest
 
   /*printf("SESS DESC: %i, %i, \n",      desc_sz,    n_descs);
   printf("SESS DEVOCC: %i, %i, \n",    docc_sz,    n_doccs);

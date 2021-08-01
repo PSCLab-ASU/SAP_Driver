@@ -170,7 +170,7 @@ int PhyLayer<InputType>::_set_intfs(PhyPacket&& in, PhyPktVec& out )
 {
   printf("PHY2 entering _set_intfs \n");
   std::vector<std::string> intfs;
-  auto[intf_sz, n_intfs, intf_ptr] = in.get_tlv(0);
+  auto[ n_intfs, intf_sz, intf_ptr] = in.get_tlv(0);
 
   std::string intf_name = std::string( (char *) intf_ptr, intf_sz);
   printf("PHY2 _set_intfs : intf_sz = %i, n_intfs = %i, name =%s \n", intf_sz, n_intfs, intf_name.c_str() ); 

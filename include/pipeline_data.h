@@ -77,14 +77,14 @@ struct base_pipeline_data
   auto get_ctrl_with_offset() const
   {
     //skipping the op code
-    auto ctrl_ptr = &_ctrl.at(_ctrl_offset+1);
+    auto ctrl_ptr = &_ctrl.at(_ctrl_offset+3); //MR LAST
     return ctrl_ptr; 
   }
 
   auto get_ctrl_with_offset()
   {
     //skipping the op code
-    auto ctrl_ptr = &_ctrl.at(_ctrl_offset+1);
+    auto ctrl_ptr = &_ctrl.at(_ctrl_offset+3); //MR LAST
     return ctrl_ptr; 
   }
 
@@ -130,8 +130,8 @@ struct base_pipeline_data
   void append_ctrl( size_t nbytes, const uchar * data )
   {
     auto c_sz= _ctrl.size();
-    if( c_sz == 0 ) { _ctrl.push_back(0); _ctrl.push_back(nbytes); }
-    if( c_sz == 1 ) _ctrl.push_back(nbytes);
+    if( c_sz == 0 ) { _ctrl.push_back(0); _ctrl.push_back(nbytes); _ctrl.push_back(0); } //MR LAST
+    else if( c_sz == 1 ) { _ctrl.push_back(nbytes); _ctrl.push_back(0); } //MR LAST
     else _ctrl.at(1) += nbytes; 
  
     for(size_t i=0; i < nbytes; i++) 
@@ -173,8 +173,8 @@ struct base_pipeline_data
   {
     if( ctrl_offset ){
       printf("set_incr_offset ctrl %zu\n", ctrl_offset.value() );
-      if( incr_offset ) _ctrl_offset += ctrl_offset.value() + 1;
-      else _ctrl_offset = ctrl_offset.value() + 1;
+      if( incr_offset ) _ctrl_offset += ctrl_offset.value();
+      else _ctrl_offset = ctrl_offset.value();
     }
 
     if ( data_offset ){
@@ -210,11 +210,13 @@ struct base_pipeline_data
     if( idx <= max_tlv){
       size_t byte_offset = 0;
       auto ctrl = get_ctrl_with_offset();
-      size_t v_len = ctrl[2*idx]; 
-      size_t e_sz  = ctrl[2*idx + 1];
+      size_t v_len = ctrl[2*idx+1];  //MR LAST
+      size_t e_sz  = ctrl[2*idx]; //MR LAST
   
       for(int i=0; i < idx; i++) byte_offset += ctrl[2*i] * ctrl[2*i+1];
   
+      printf(" get_tlv : %p : %lu \n", get_data_with_offset(), byte_offset);
+
       const uchar * ptr = get_data_with_offset() + byte_offset;
 
       //auto out = std::make_tuple<size_t, size_t, const uchar *>
@@ -288,7 +290,9 @@ struct BasePacket
 {
   using type = std::shared_ptr<base_pipeline_data>;
 
-  BasePacket(){}
+  BasePacket(){
+    _base = std::make_shared<base_pipeline_data>();
+  }
 
   BasePacket( type base )
   : _base (base)

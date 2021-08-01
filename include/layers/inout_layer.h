@@ -3,6 +3,8 @@
 #include <iostream>
 #include <optional>
 #include <algorithm>
+#include <chrono>
+#include <thread>
 #include "include/utils.h"
 #include "include/layers/base_layer.h"
 #include "include/pipeline_data.h"
@@ -40,8 +42,10 @@ class InOutLayer : public base_layer<InOutLayer<InOutType>, InOutPacket >
       this->template register_cmd<FromApp>(cleanup, &class_type::_cleanup_ds);
       this->template register_cmd<FromPhy>(cleanup, &class_type::_cleanup_us);
       /////////////////////////////////////////////////////////////////////////////////////
+      this->template register_cmd<FromPhy>(self, &class_type::_noop_us );
       this->template register_cmd<FromApp>(self, &class_type::_input_mux );
-      this->template register_cmd<FromPhy>(InOutPacket::output, &class_type::_output_demux);
+      //this->template register_cmd<FromPhy>(InOutPacket::output, &class_type::_output_demux);
+      this->template register_cmd<FromPhy>(any, &class_type::_output_demux);
     }
 
     template<std::ranges::input_range R>
@@ -74,14 +78,17 @@ class InOutLayer : public base_layer<InOutLayer<InOutType>, InOutPacket >
         std::cout << "Adding pop interface out of pipeline " << std::endl;
         pop = [&]( ushort op )->std::optional<PipelineOutput>
               {
-                if( _output_q.empty() ) return {};
+                printf("INOUT atomic (a) op : %i \n",op ); 
+                while( _output_q.empty() ) continue;
                 
+                printf("INOUT atomic (b)\n" ); 
                 PipelineOutput& out = _output_q.front();
+                printf("INOUT atomic (c)\n" ); 
                 auto& aop = out.get_atomic_op( );
-
+                printf("INOUT atomic (d) :%i \n", aop.load() ); 
                 while( !aop.compare_exchange_weak(op, common_layer_cmds::noop ) )
                   continue;
-
+                printf("INOUT atomic (e) :%i \n", op ); 
                 std::lock_guard lk(_out_mu);
                 _output_q.pop();
                 return out;
@@ -146,11 +153,12 @@ class InOutLayer : public base_layer<InOutLayer<InOutType>, InOutPacket >
 
     int _output_demux(InOutPacket&& in, InOutPktVec& out )
     {
-      std::cout << "self output_mux... " << std::endl;
+      std::cout << "Entering output_mux... " << std::endl;
       std::lock_guard lk( _out_mu );
 
       PipelineOutput po( in.get_base() );
       po.make_op_atomic();
+      printf(" INOUT : operation %i \n", po.get_pkt_operation() );
   
       _output_q.push( std::move(po)  );
 
@@ -173,9 +181,9 @@ class InOutLayer : public base_layer<InOutLayer<InOutType>, InOutPacket >
 
     std::mutex _in_mu, _out_mu;
 
-    std::queue<PipelineInput>  _input_q;
+    inline static std::queue<PipelineInput>  _input_q;
 
-    std::queue<PipelineOutput> _output_q;
+    inline static std::queue<PipelineOutput> _output_q;
 
     inline static InOutSM      _sm;
     

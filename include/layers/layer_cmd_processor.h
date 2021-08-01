@@ -30,23 +30,24 @@ class layer_cmd_processor
   
     int operator() (typed_data& input, std::vector<typed_data>& output ) 
     { 
-      std::cout << "operator() Initial ingress : " << input.size() << std::endl;
       typed_data temp_out;
    
       //takes (processes) a single vector element from the previous layer
-      std::cout << "Reading single output from previous layer " << std::endl;
       std::ranges::for_each( input, [&](auto& in){ _process_single(in, temp_out);  }  ); 
 
       //takes queue packets and processes all othe them
-      std::cout << "Reading elements from the queue" << std::endl;
       while( !_other_q_empty() ) 
       { 
         auto q_element = _other_q_pop();
+
         std::ranges::for_each( q_element, [&](auto& in){ 
-          _process_single(in, temp_out);  }  ); 
+          printf("CROSS Q Reading.... op : %i \n", 
+                in.get_pkt_operation() );
+                in.reset_dst();
+                _process_single<false, true>(in, temp_out);  }  ); 
+          //output.push_back( q_element );
       }
       //adding current layer packets
-      std::cout << "Adding current layers packets" << std::endl;
       typename typed_data::value_type empty;
       _process_single<true>(empty, temp_out);   
 
@@ -82,9 +83,12 @@ class layer_cmd_processor
     {
       if( processed_data.empty() )
       {
-        std::cout << " Forwarding input ..." << std::endl;
+        /*std::ranges::for_each( input, [](auto& in)
+        {
+          printf( "Forwarding INPUT with op %i \n", in.get_pkt_operation() );
+        });*/
+
         output.push_back( std::move(input) ); 
-        std::cout << " Forwarding input : " << output.size() <<  std::endl;
       }
       else if( std::ranges::none_of( processed_data, 
                                     std::negate{}, 
@@ -106,7 +110,8 @@ class layer_cmd_processor
                                             &typed_data::value_type::get_pkt_operation);
 
         //adding empty downstream packet to continue heart beat
-        if( cleanup_it != std::end(processed_data) )
+        //if( cleanup_it != std::end(processed_data) )
+        if( cleanup_it != std::end(input) )
         {
           std::cout << "Found cleanup token in the output" << std::endl;
           output.push_back( {*cleanup_it} );
@@ -139,11 +144,19 @@ class layer_cmd_processor
 
     }
 
-    template<bool Override=false>
+    template<bool Override=false, bool PassThru=false>
     void _process_single (typename typed_data::value_type& in, typed_data& out)
     {
-      std::cout << "operator() single element processing" << std::endl;
-  
+      //process input
+      func_out_parm temp;   
+      
+      if( PassThru ) {
+        temp.push_back(in.get_data() );
+        std::ranges::transform(temp, std::back_inserter(out), &DataIntf::get_base );
+        return;
+      }
+
+ 
       if( in || Override )
       {
         //get the operation
@@ -151,12 +164,18 @@ class layer_cmd_processor
 
         if( auto cmd = _command_processor.find(op); cmd != _command_processor.end() )
         {
-          std::cout << "Calling command .... : " << ( (ushort ) op) << std::endl;
-          //process input
-          func_out_parm temp;   
           cmd->second( in.get_data(), temp );
           //transform to out type
           std::ranges::transform(temp, std::back_inserter(out), &DataIntf::get_base );
+        }
+        else if( auto cmd = _command_processor.find(common_layer_cmds::any ); 
+                 cmd != _command_processor.end() )
+        {
+          //if ( op != common_layer_cmds::self )
+          {
+            printf("2) Executing ANY procedure... op : %i \n", (ushort) op );
+            cmd->second(in.get_data(), temp ); 
+          }
         }
 
         if( op == common_layer_cmds::cleanup )
@@ -210,7 +229,7 @@ class layer_cmd_processor
     void _write_data_to_q( auto&& data )
     {
       std::lock_guard lock(_q_mu);
-      _packet_q.push( std::move(data) );        
+      _packet_q.push( std::forward<decltype(data)>(data) );        
     }
 
     std::function<bool()> _other_q_empty;

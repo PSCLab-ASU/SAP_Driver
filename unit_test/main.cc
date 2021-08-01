@@ -15,7 +15,11 @@ int main(int argc, char * argv[]  )
   //Get number of accelerators
   SAP_GetNDevices( &n_devices );
 
-  std::vector<uint> dev_ids(n_devices, 0);
+  std::cin.ignore();
+
+  printf(" UNIT_TEST ndev=%i\n", n_devices);
+  
+ /* std::vector<uint> dev_ids(n_devices, 0);
 
   //Get all device IDs
   SAP_GetDeviceIDs( n_devices, dev_ids.data(), &new_ndevices );
@@ -36,7 +40,7 @@ int main(int argc, char * argv[]  )
   });
 
   std::cin.ignore();
-
+  */
   SAP_Finalize();
   std::cout << "Application is complete..." <<  std::endl;
 

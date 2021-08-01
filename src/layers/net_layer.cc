@@ -90,7 +90,7 @@ template<typename InputType>
 int NetworkLayer<InputType>::_deactivate_port(NetworkPacket&& in, NetworkPktVec& out )
 {
   unsigned char dev_idx = 0;
-  auto[mac_sz,  n_macs,  mac_ptr ] = in.get_tlv(0); //src_mac
+  auto[ n_macs, mac_sz,  mac_ptr ] = in.get_tlv(0); //src_mac
   auto mac = std::string((char *) mac_ptr, mac_sz);
 
   if( _sm.device_exists( mac ) )
@@ -102,8 +102,8 @@ int NetworkLayer<InputType>::_deactivate_port(NetworkPacket&& in, NetworkPktVec&
     {
       auto dev_id = dev.get_id();
       NetworkPacket np( TransportPacket::deactivate_device );
-      np.append_ctrl_data( (unsigned char) dev_id.size() );
       np.append_ctrl_data((unsigned char)  1 );
+      np.append_ctrl_data( (unsigned char) dev_id.size() );
       np.append_data( 1 , (const unsigned char *) dev_id.c_str() );
       out.push_back( np );
       printf("NET LOST Device %s \n", dev_id.c_str() );
@@ -118,9 +118,9 @@ int NetworkLayer<InputType>::_keep_alive(NetworkPacket&& in, NetworkPktVec& out 
 {
   printf("NET KEEP_ALIVE\n");
   accel_descriptor acd;
-  auto[mac_sz,  n_macs,  mac_ptr ] = in.get_tlv(5); //src_mac
-  auto[desc_sz, n_descs, desc_ptr] = in.get_tlv(0); //descs
-  auto[cong_sz, n_congs, cong_ptr] = in.get_tlv(1); //link congest
+  auto[n_macs,  mac_sz,  mac_ptr ] = in.get_tlv(5); //src_mac
+  auto[n_descs, desc_sz, desc_ptr] = in.get_tlv(0); //descs
+  auto[n_congs, cong_sz, cong_ptr] = in.get_tlv(1); //link congest
   printf("NET MAC: %i, %i, \n", mac_sz, n_macs);
   printf("NET DESC: %i, %i, \n", desc_sz, n_descs);
   printf("NET LCONG: %i, %i, \n", cong_sz, n_congs);
@@ -136,6 +136,11 @@ int NetworkLayer<InputType>::_keep_alive(NetworkPacket&& in, NetworkPktVec& out 
   {
     printf( "%02x,", v );
   });
+
+  auto ctrl = in.get_ctrl<false>();
+  printf("NET CTRL : ");
+  for(auto byt : ctrl) printf(" %02x, ", byt);
+  printf("\n");
 
  
   std::string mac = std::string( (char *) mac_ptr, 6);
@@ -162,12 +167,12 @@ int NetworkLayer<InputType>::_keep_alive(NetworkPacket&& in, NetworkPktVec& out 
  
   in.set_op( TransportPacket::keep_alive ); 
   //returns index of the device
-  in.append_ctrl_data( (unsigned char) dev_id.size() );
   in.append_ctrl_data((unsigned char)  1 );
+  in.append_ctrl_data( (unsigned char) dev_id.size() );
   in.append_data( 1 , (const unsigned char *) dev_id.c_str() );
   ///////////////////////////////////////////////////////
-  in.append_ctrl_data( (unsigned char)  sizeof(avg_lcong) );
   in.append_ctrl_data( (unsigned char)  1       );
+  in.append_ctrl_data( (unsigned char)  sizeof(avg_lcong) );
   in.append_data( 1 ,  (const unsigned char *) &avg_lcong );
   ///////////////////////////////////////////////////////
   out.push_back( std::forward<decltype(in)>(in) );

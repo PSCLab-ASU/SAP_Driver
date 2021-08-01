@@ -13,7 +13,7 @@ struct PresentationPacket : public BasePacket
   //restriction interface view
   PresentationPacket( typename BasePacket::type base );
 
-  PresentationPacket( ushort );  
+  PresentationPacket( ushort op=common_layer_cmds::noop );  
 
   enum : unsigned char { var=InOutPacket::END+1, get_devices, END };
 

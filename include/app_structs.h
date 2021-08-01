@@ -18,6 +18,7 @@ namespace app_intf
 
     void add_device( uint id, const base_device_information& bdi)
     {
+      printf("app_intf::devices::add_device(...) : id = %i \n", id);
       _devices[id] = bdi;
     }
 

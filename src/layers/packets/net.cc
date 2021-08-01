@@ -79,7 +79,7 @@ NetworkPacket::device_information::deserialize( const NetworkPacket & np )
 {
  
   std::vector<std::string> aux_macs;
-  auto[mac_sz, n_macs, macs_ptr] = np.get_tlv(0);
+  auto[ n_macs, mac_sz, macs_ptr] = np.get_tlv(0);
  
   for( int i=0; i < n_macs; i++  ){
 

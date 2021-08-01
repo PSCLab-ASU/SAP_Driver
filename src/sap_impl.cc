@@ -1,6 +1,7 @@
 #include <type_traits>
 #include <iostream>
 #include <thread>
+#include <chrono>
 #include "include/sap_impl.h"
 #include "include/utils.h"
 #include "include/layers/packets/phy_packet.h"
@@ -54,8 +55,8 @@ void SAPLibPImpl::init( std::vector<std::string> intfs )
   std::ranges::for_each(intfs, [&](auto intf){
     const unsigned char len = (const uchar) intf.size();
     const unsigned char one = 1;
-    p.append_ctrl_data((unsigned char) 1,  &len );
     p.append_ctrl_data((unsigned char) 1,  &one );
+    p.append_ctrl_data((unsigned char) 1,  &len );
     p.append_data( intf.size(), (const unsigned char *) intf.c_str() );
   });
 
@@ -83,11 +84,18 @@ void SAPLibPImpl::finalize()
 
 app_error_t SAPLibPImpl::get_available_devices( app_intf::devices& di )
 {
+  
+  printf("\nPRES get_available_devices(...)\n");
   PresentationPacket pp( PresentationPacket::get_devices );
 
   _pipeline.push( pp.get_base() );
+  printf("\nPRES get_available_devices( after push)\n");
+
+  //using namespace std::chrono_literals;
+  //std::this_thread::sleep_for(30s);  
 
   auto data = _pipeline.pop( PresentationPacket::get_devices );
+  printf("\nPRES get_available_devices( after pop)\n");
 
   auto _di = app_intf::devices::deserialize( std::move(data.value()) ); //uses BasePacket;
 
