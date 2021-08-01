@@ -51,10 +51,11 @@ BasePacket app_intf::devices::serialize()
   {
     printf("app_intf::devices::serialize(...) %i \n", id);
     auto desc = bdi.serialize_desc();
- 
+
+    std::string id_str = std::to_string( id ); 
     bp.append_ctrl_data( (unsigned char) 1 );
-    bp.append_ctrl_data( (unsigned char) sizeof(id) );
-    bp.append_data( sizeof(id) , (const unsigned char *) &id );
+    bp.append_ctrl_data( (unsigned char) id_str.size() );
+    bp.append_data( id_str.size() , (const unsigned char *) id_str.c_str() );
 
     bp.append_ctrl_data((unsigned char) 1 );
     bp.append_ctrl_data( (unsigned char) desc.size() ); 
